@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <link rel="stylesheet" href="{% static 'home.css' %}">
+    <link rel="icon" href="{% static 'assets/VALLET (2).png' %}" type="image/x-icon" />
+    <title>Vallet</title>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+<nav class="navbar">
+    <div class="container">
+        <div class="logo"><img src="{% static 'assets/VALLET_logo.png' %}" alt=""></div>
+            <ul class="nav-links">
+            <li><a href="#inicio" class="nav-item">Início</a></li>
+            <li><a href="#desafio" class="nav-item">O Desafio</a></li>
+            <li><a href="#como-funciona" class="nav-item">Como Funciona?</a></li>
+            <li><a href="#beneficios" class="nav-item">Benefícios</a></li>
+            <li><a href="#feedbacks" class="nav-item">Feedbacks</a></li>
+            </ul>
+            <div class="auth-buttons">
+                <a href="#login" class="btn-login">Login</a>
+                <a href="#cadastro" class="btn-cadastro">Cadastro</a>
+            </div>
+    </div>
+</nav>
+
+
+<!-- HERO SECTION -->
+<section class="hero">
+    <div class="hero-container">
+        <div class="hero-text">
+            <h1>Mobilidade <span>inteligente</span> começa com um estacionamento <span>fácil</span>.</h1>
+                <p>Seu carro conectado ao futuro: câmeras que trabalham por <span>você</span> para encontrar a vaga <span>perfeita</span>.</p>
+            <div class="hero-buttons">
+                <a href="#" class="btn-primary">Comece a Usar</a>
+            </div>
+            </div>
+            
+        <div class="hero-image-wrapper">
+            <img src="{% static 'assets/vallet (4).png' %}" alt="Mockup do App" />
+        </div>
+    </div>
+</section>
+
+<!-- VIDEO PITCH  -->
+<section class="video-pitch">
+    <div class="video-pitch-container">
+
+        <div class="pitch-text">
+            <h2>Cansado de perder tempo procurando vaga?</h2>
+            <p>
+        O crescimento da frota de veículos e a falta de controle sobre os 
+        estacionamentos deixam motoristas perdendo tempo e enfrentando stress desnecessário. 
+
+        Gestores lidam com ocupação desorganizada, horários confusos e dificuldade de acompanhar receita. 
+
+            </p>
+            <p>
+        O Vallet muda esse cenário: câmeras inteligentes e plataformas digitais, 
+        é possível localizar vagas em tempo real, reservar rapidamente e monitorar toda a operação com eficiência.
+
+        Menos espera, mais praticidade e gestão inteligente para todos.
+            </p>
+        </div>
+
+        <div class="pitch-video">
+            <iframe width="100%" height="315"
+                src="#"
+                title="Vallet Video Pitch"
+                frameborder="0"
+                allowfullscreen>
+            </iframe>
+        </div>
+
+    </div>
+</section>
+
+<section class="timeline-section">
+
+    <div class="timeline-container">
+
+        <div class="timeline">
+
+            <div class="timeline__component">
+                <div class="timeline__title">Encontre</div>
+                <div class="timeline__paragraph">
+                    Encontre um estacionamento disponível
+                </div>
+            </div>
+
+            <div class="timeline__middle">
+                <div class="timeline__point"></div>
+            </div>
+
+            <div class="timeline__component timeline__component--bg">
+                <img src="{% static 'assets/outdoorparking.png' %}" class="timeline__icon">
+            </div>
+
+            <div class="timeline__component timeline__component--bg">
+                <img src="{% static 'assets/estacionamentocoberto.png' %}" class="timeline__icon">
+            </div>
+
+            <div class="timeline__middle">
+                <div class="timeline__point"></div>
+            </div>
+
+            <div class="timeline__component">
+                <div class="timeline__title">Reserve</div>
+                <div class="timeline__paragraph">
+                    Reserve sua vaga pelo app
+                </div>
+            </div>
+
+            <div class="timeline__component">
+                <div class="timeline__title">Estacione</div>
+                <div class="timeline__paragraph">
+                    Estacione sem complicações
+                </div>
+            </div>
+
+            <div class="timeline__middle">
+                <div class="timeline__point"></div>
+            </div>
+
+            <div class="timeline__component timeline__component--bg">
+                <img src="{% static 'assets/estacionamento.png' %}" class="timeline__icon">
+            </div>
+
+            <div class="timeline__component timeline__component--bg">
+                <img src="{% static 'assets/monitoramento.png' %}" class="timeline__icon">
+            </div>
+
+            <div class="timeline__middle">
+                <div class="timeline__point timeline__point--bottom"></div>
+            </div>
+
+            <div class="timeline__component">
+                <div class="timeline__title">Monitore</div>
+                <div class="timeline__paragraph">
+                    Gestores monitoram em tempo real
+                </div>
+            </div>
+
+        </div>
+
+        <div class="timeline-image">
+            <img src="{% static 'assets/comofunciona.png' %}" alt="">
+        </div>
+
+    </div>
+
+</section>
+
+<section class="benefits-section">
+    <div class="benefits-container">
+
+        <div class="benefit-card">
+            <div class="benefit-item">
+                <img src="{% static 'assets/carrointeligente.png' %}" alt="">
+                <p>Mobilidade Inteligente</p>
+            </div>
+
+            <span class="divider"></span>
+
+            <div class="benefit-item">
+                <img src="{% static 'assets/deliverytime.png' %}" alt="">
+                <p>Economia de Tempo</p>
+            </div>
+
+            <span class="divider"></span>
+
+            <div class="benefit-item">
+                <img src="{% static 'assets/sustentabilidade.png' %}" alt="">
+                <p>Sustentabilidade</p>
+            </div>
+
+            <span class="divider"></span>
+
+            <div class="benefit-item">
+                <img src="{% static 'assets/seguranca.png' %}" alt="">
+                <p>Segurança e Controle</p>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section class="depoimentos-section" id="feedbacks">
+
+    <div class="depoimentos-container">
+
+        <!-- LADO ESQUERDO -->
+        <div class="depoimentos-left">
+            <img src="{% static 'assets/depoimentos.png' %}" class="chat-bg">
+            <h2>Depoimentos</h2>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pharetra tellus ut erat consequat auctor.
+            </p>
+        </div>
+
+        <!-- LADO DIREITO -->
+        <div class="depoimentos-right">
+
+            <div class="depo-card">
+                <img class="avatar" src="{% static 'assets/avatar1.png' %}">
+                <h3>Laura</h3>
+                <span>Gestor</span>
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pharetra tellus ut erat consequat.
+                </p>
+            </div>
+
+            <div class="depo-card">
+                <img class="avatar" src="{% static 'assets/avatar2.png' %}">
+                <h3>Rômulo</h3>
+                <span>Motorista</span>
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pharetra tellus ut erat consequat.
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="cta-download">
+
+    <div class="cta-container">
+
+        <div class="cta-mockups">
+            <img src="{% static 'assets/mockups.png' %}" class="mockups" alt="">
+        </div>
+
+        <div class="cta-text">
+            <h2>
+                <span>Transforme</span> sua experiência ao estacionar.
+            </h2>
+            <p>
+                Baixe o Vallet e descubra como a tecnologia pode tornar seu dia mais simples, rápido e inteligente.
+            </p>
+
+            <div class="cta-buttons">
+                <a href="#" class="btn-google">
+                    <img src="{% static 'assets/googleplay.png' %}" >
+                    Google Play
+                </a>
+
+                <a href="#" class="btn-web">
+                    <img src="{% static 'assets/dominio.png' %}" >
+                    Versão Web
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+<section class="gestores-section">
+
+    <div class="gestores-container">
+
+        <div class="gestores-text">
+            <h2>
+                Gestores, transformem a forma de administrar seu estacionamento com o 
+                <span>Vallet.</span>
+            </h2>
+
+            <p>
+                Controle em tempo <span class="green">real</span>, relatórios completos e mais 
+                eficiência para o seu <span class="green">negócio</span>.
+            </p>
+
+            <p class="small">
+                Quer implementar o Vallet no seu estabelecimento e ter mais controle sobre o 
+                gerenciamento? Nossa equipe está pronta para ajudar você a modernizar sua gestão e 
+                oferecer uma experiência diferenciada aos seus clientes.
+            </p>
+
+            <a href="#" class="btn-parceiro">Quero ser parceiro Vallet</a>
+        </div>
+
+        <div class="gestores-image">
+            <img src="{% static 'assets/mulher_tablet.png' %}" alt="Pessoa usando tablet">
+        </div>
+
+    </div>
+
+</section>
+
+<footer class="footer">
+
+    <div class="footer-container">
+
+        <div class="footer-logo">
+            <img src="{% static 'assets/VALLET_logo.png' %}" alt="Vallet Logo">
+        </div>
+
+        <div class="footer-links">
+            <a href="#inicio">Início</a>
+            <a href="#desafio">O Desafio</a>
+            <a href="#como-funciona">Como Funciona?</a>
+            <a href="#beneficios">Benefícios</a>
+            <a href="#feedbacks">Feedbacks</a>
+        </div>
+
+        <div class="footer-top">
+            <a href="#"><img src="{% static 'assets/Arrow.png' %}"></a>
+        </div>
+
+    </div>
+
+    <p class="footer-copy">© 2025 Vallet. Todos os direitos reservados.</p>
+
+</footer>
+
+
+
+
+</body>
+</html>
