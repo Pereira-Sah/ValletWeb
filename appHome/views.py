@@ -8,3 +8,6 @@ def appHome(request):
 
 def login(request):
     return render(request, 'login.html')
+
+def gestor(request):
+    return render(request, 'admin.html')
