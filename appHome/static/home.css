@@ -22,8 +22,6 @@
 
 /* ===== NAVBAR ===== */
 
-
-
 body {
     margin: 0;
     font-family: "Poppins", sans-serif;
@@ -427,7 +425,7 @@ body {
     width: 100%;
     height: 100%;
     background: url('assets/background_triangulo2.svg') no-repeat right top;
-      transform: rotateY(180deg);
+    transform: rotateY(180deg);
 
     background-size: 100%;
     z-index: 0;

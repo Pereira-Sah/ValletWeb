@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+        {% load static %}
+
+    <meta charset="UTF-8">
+    <title>Login - Vallet</title>
+    <link rel="stylesheet" href="{% static 'login.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="icon" type="image/png" href="{% static 'assets/VALLET (2).png' %}">
+</head>
+<body>
+<img class="logo" src="{% static 'assets/VALLET (2).png' %}" alt="Logo Vallet">
+<div class="triangle-bg-behind">
+    <img src="{% static 'assets/background_triangulo6.svg' %}" alt="Triângulo">
+</div>
+<div class="container_registerLogin">
+
+    <div class="left">
+
+        <h1>Login</h1>
+
+        <form id="loginForm">
+
+            <div class="input-group">
+                <i class="bi bi-envelope"></i>
+                <input type="email" id="email" placeholder="Email" required>
+            </div>
+
+            <div class="input-group">
+                <i class="bi bi-key-fill"></i>
+                <input type="text" id="accessCode" placeholder="Código de Acesso" required>
+            </div>
+
+            <div class="input-group">
+                <i class="bi bi-lock-fill"></i>
+                <input type="password" id="password" placeholder="Senha" required>
+            </div>
+
+            <a href="#" style="color: #046C4E; display: flex; justify-content: center; margin-bottom: 10px;">Esqueceu sua senha?</a>
+
+            <button type="submit">Entrar</button>
+
+        </form>
+        <p style="text-align:center; margin-top:15px;">Não tem conta? <a href="#" style="color: #046C4E;">Cadastre-se</a></p>
+    </div>
+
+    <div class="right">
+        <img src="{% static 'assets/vallet_login.svg' %}" class="person-image" alt="Pessoa">
+    </div>
+
+</div>
+
+</body>
+</html>

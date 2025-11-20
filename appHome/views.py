@@ -5,3 +5,6 @@ from django.template import loader
 
 def appHome(request):
     return render(request, 'home.html')
+
+def login(request):
+    return render(request, 'login.html')
