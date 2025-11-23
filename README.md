@@ -16,7 +16,7 @@ Siga os passos abaixo para configurar o ambiente e rodar o projeto.
 ### 1. Clone o Repositório
 
 ```bash
-git clone <url-do-seu-repositorio>
+git clone https://github.com/Pereira-Sah/ValletWeb
 cd ValletWeb
 ```
 
@@ -24,15 +24,18 @@ cd ValletWeb
 
 É uma boa prática usar um ambiente virtual para isolar as dependências do projeto.
 
-```bash
-# Crie o ambiente virtual (venv)
-python -m venv AmbienteVirtual
 
-# Ative o ambiente
+### Crie o ambiente virtual (venv)
+
+```bash
+python -m venv AmbienteVirtual
+```
+
+### Ative o ambiente
+
+```bash
 # No Windows (cmd.exe)
 AmbienteVirtual\Scripts\activate
-# No macOS/Linux
-# source venv/bin/activate
 ```
 
 ### 3. Instale as Dependências
