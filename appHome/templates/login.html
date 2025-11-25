@@ -51,5 +51,40 @@
 
 </div>
 
+    <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e){
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        // enviar para o endpoint do Django que troca por idToken e realiza login
+        try{
+            const resp = await fetch('/auth/firebase/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, password})
+            });
+            const j = await resp.json();
+            // CÓDIGO CORRIGIDO
+if(resp.ok){
+    // O backend já envia a URL correta (ex: "/gestor/"). 
+    // Usamos ela diretamente, sem o fallback relativo 'gestor/'.
+    const redirect = j.redirect; 
+    
+    if (redirect) {
+        window.location.href = redirect;
+    } else {
+        // Log de segurança, caso o backend não envie a URL
+        console.error("Redirecionamento não especificado na resposta do servidor. Tentando fallback absoluto...");
+        window.location.href = '/gestor/'; 
+    }
+    } else {
+    alert('Erro no login: ' + (j.error || 'unknown'));
+}
+        }catch(err){
+            alert('Erro de rede: ' + err);
+        }
+    });
+    </script>
+
 </body>
 </html>

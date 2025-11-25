@@ -121,3 +121,12 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTHENTICATION_BACKENDS = [
+    "appHome.auth_backend.FirebaseBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Firebase REST API key (used only if you want server-side sign-in with email+password)
+import os
+FIREBASE_API_KEY = os.environ.get("FIREBASE_API_KEY", "")

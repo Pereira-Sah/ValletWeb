@@ -16,8 +16,8 @@
             <div class="sidebar-header">
                 <div class="avatar"><i class="bi bi-person-circle" style="color: black;"></i></div>
                 <div class="user-info">
-                    <h3>Admin Vallet</h3>
-                    <p>Gestor</p>
+                    <h3>{{ user_name }}</h3>
+                    <p>{{ user_cargo }}</p>
                 </div>
             </div>
             <nav class="menu">
@@ -38,21 +38,21 @@
                     <i class="bi bi-car-front-fill card-icon"></i>
                     <div class="card-info">
                         <span>Vagas Ocupadas</span>
-                        <h2>120 / 150</h2>
+                        <h2>{{ vagas_ocupadas }} / {{ vagas_total }}</h2>
                     </div>
                 </div>
                 <div class="card">
                     <i class="bi bi-calendar-check-fill card-icon"></i>
                     <div class="card-info">
                         <span>Reservas Hoje</span>
-                        <h2>45</h2>
+                        <h2>{{ reservas_hoje }}</h2>
                     </div>
                 </div>
                 <div class="card">
                     <i class="bi bi-clock-history card-icon"></i>
                     <div class="card-info">
                         <span>Reservas Pendentes</span>
-                        <h2>15</h2>
+                        <h2>{{ reservas_pendentes }}</h2>
                     </div>
                 </div>
 
@@ -60,7 +60,7 @@
                     <i class="bi bi-cash-stack card-icon"></i>
                     <div class="card-info">
                         <span>Receita Mensal</span>
-                        <h2>R$ 12.500</h2>
+                        <h2>R$ {{ receita_mensal }}</h2>
                     </div>
                 </div>
             </div>
@@ -68,11 +68,19 @@
             <div class="recent-activity">
                 <h2>Últimas Reservas</h2>
                 <ul>
-                    <li>Maria Silva entrou na vaga 12 às 08:30</li>
-                    <li>João Souza entrou na vaga 5 às 09:00</li>
-                    <li>Carlos Lima saiu da vaga 18 às 11:00</li>
-                    <li>Ana Pereira entrou na vaga 7 às 10:00</li>
-                    <li>Paulo Costa saiu da vaga 3 às 11:45</li>
+                    {% for reserva in ultimas_reservas %}
+                        <li>
+                            {{ reserva.nome_cliente }} 
+                            {% if reserva.tipo_movimento|lower == 'entrada' %}
+                                entrou
+                            {% else %}
+                                saiu
+                            {% endif %}
+                            na vaga {{ reserva.vaga_num }} às {{ reserva.hora }}
+                        </li>
+                    {% empty %}
+                        <li>Nenhuma atividade recente registrada.</li>
+                    {% endfor %}
                 </ul>
             </div>
 
