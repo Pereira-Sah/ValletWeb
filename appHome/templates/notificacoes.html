@@ -1,0 +1,568 @@
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-bell-fill me-2"></i>Notificações
+                    {% if notificacoes_nao_lidas > 0 %}
+                    <span class="badge bg-danger ms-2">{{ notificacoes_nao_lidas }}</span>
+                    {% endif %}
+                </h1>
+                <div class="btn-group">
+                    <button id="btn-sincronizar" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Sincronizar
+                    </button>
+                    {% if notificacoes_nao_lidas > 0 %}
+                    <button id="btn-marcar-todas-lidas" class="btn btn-outline-success">
+                        <i class="bi bi-check-all"></i> Marcar Todas como Lidas
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="btn-group">
+<div class="btn-group">
+    <button id="btn-sincronizar" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-clockwise"></i> Sincronizar
+    </button>
+    <button id="btn-sincronizacao-agressiva" class="btn btn-outline-warning">
+        <i class="bi bi-arrow-repeat"></i> Sinc. Agressiva
+    </button>
+    {% if notificacoes_nao_lidas > 0 %}
+    <button id="btn-marcar-todas-lidas" class="btn btn-outline-success">
+        <i class="bi bi-check-all"></i> Marcar Lidas
+    </button>
+    {% endif %}
+</div>
+    <button id="btn-debug" class="btn btn-outline-info">
+        <i class="bi bi-bug"></i> Debug
+    </button>
+</div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="filtro-tipo" class="form-label">Tipo de Notificação</label>
+                            <select id="filtro-tipo" class="form-select">
+                                <option value="">Todos os tipos</option>
+                                <option value="sistema_alerta_estacionamento">Alerta de Estacionamento</option>
+                                <option value="reserva_confirmada">Reserva Confirmada</option>
+                                <option value="alerta_saida">Alerta de Saída</option>
+                                <option value="sistema_erro">Erro do Sistema</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="filtro-status" class="form-label">Status</label>
+                            <select id="filtro-status" class="form-select">
+                                <option value="">Todas</option>
+                                <option value="nao_lidas">Não lidas</option>
+                                <option value="lidas">Lidas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="filtro-data" class="form-label">Data</label>
+                            <input type="date" id="filtro-data" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Notificações -->
+            <div class="card">
+                <div class="card-body">
+                    <div id="loading-notificacoes" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2">Carregando notificações...</p>
+                    </div>
+                    
+                    <div id="lista-notificacoes">
+                        {% if notificacoes %}
+                            {% for notificacao in notificacoes %}
+                            <div class="notificacao-item border-bottom pb-3 mb-3 {% if not notificacao.lida %}bg-light{% endif %}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi 
+                                                {% if notificacao.tipo == 'sistema_alerta_estacionamento' %}bi-car-front-fill text-warning
+                                                {% elif notificacao.tipo == 'reserva_confirmada' %}bi-check-circle-fill text-success
+                                                {% elif notificacao.tipo == 'alerta_saida' %}bi-exclamation-triangle-fill text-danger
+                                                {% else %}bi-bell-fill text-primary{% endif %} 
+                                                me-2"></i>
+                                            <h6 class="mb-0 {% if not notificacao.lida %}fw-bold{% endif %}">
+                                                {{ notificacao.get_tipo_display }}
+                                            </h6>
+                                            {% if not notificacao.lida %}
+                                            <span class="badge bg-primary ms-2">Nova</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="mb-1">{{ notificacao.motivo }}</p>
+                                        <div class="text-muted small">
+                                            <span class="me-3"><i class="bi bi-signpost-fill"></i> Vaga: {{ notificacao.vaga_id }}</span>
+                                            <span class="me-3"><i class="bi bi-car-front-fill"></i> Placa: {{ notificacao.placa }}</span>
+                                            <span><i class="bi bi-clock"></i> {{ notificacao.timestamp|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group ms-3">
+                                        {% if not notificacao.lida %}
+                                            <button class="btn btn-sm btn-outline-success btn-marcar-lida" data-id="{{ notificacao.id }}">
+                                                <i class="bi bi-check"></i>
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-danger btn-excluir" data-id="{{ notificacao.id }}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="bi bi-bell-slash display-4 text-muted"></i>
+                                <h5 class="mt-3 text-muted">Nenhuma notificação encontrada</h5>
+                                <p class="text-muted">As notificações do sistema aparecerão aqui.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="carregar-mais-container" class="text-center mt-4" style="display: none;">
+                        <button id="btn-carregar-mais" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Carregar Mais
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    
+class NotificacoesManager {
+    constructor() {
+        this.limit = 20;
+        this.offset = 0;
+        this.carregando = false;
+        this.init();
+    }
+    
+    init() {
+        this.setupEventListeners();
+        this.setupAutoRefresh();
+    }
+    
+    setupEventListeners() {
+        // Filtros
+        $('#filtro-tipo, #filtro-status, #filtro-data').on('change', () => {
+            this.offset = 0;
+            this.carregarNotificacoes();
+        });
+        
+        // Botões de ação
+        $('#btn-sincronizar').on('click', () => this.sincronizar());
+        $('#btn-marcar-todas-lidas').on('click', () => this.marcarTodasComoLidas());
+        $('#btn-carregar-mais').on('click', () => this.carregarMais());
+        
+        // Delegation para botões dinâmicos
+        $(document).on('click', '.btn-marcar-lida', (e) => this.marcarComoLida(e));
+        $(document).on('click', '.btn-excluir', (e) => this.excluirNotificacao(e));
+        $('#btn-debug').on('click', () => this.debug());
+        $('#btn-sincronizacao-agressiva').on('click', () => this.sincronizacaoAgressiva());
+
+
+    }
+    // Adicione este event listener
+async sincronizacaoAgressiva() {
+    if (!confirm('⚠️ Isso vai apagar e recriar TODAS as notificações. Continuar?')) {
+        return;
+    }
+    
+    $('#btn-sincronizacao-agressiva').prop('disabled', true).html('<i class="bi bi-arrow-repeat spinner-border spinner-border-sm"></i> Sinc. Agressiva...');
+    
+    try {
+        const response = await fetch('/api/notificacoes/sincronizacao-agressiva/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            this.mostrarSucesso(data.message);
+            this.offset = 0;
+            setTimeout(() => {
+                this.carregarNotificacoes();
+            }, 1000);
+        } else {
+            this.mostrarErro(data.error);
+        }
+        
+    } catch (error) {
+        console.error('Erro na sincronização agressiva:', error);
+        this.mostrarErro('Erro na sincronização agressiva');
+    } finally {
+        $('#btn-sincronizacao-agressiva').prop('disabled', false).html('<i class="bi bi-arrow-repeat"></i> Sinc. Agressiva');
+    }}
+// Adicione este método na classe NotificacoesManager
+async debug() {
+    try {
+        const response = await fetch('/api/notificacoes/debug/');
+        const data = await response.json();
+        
+        console.log("🔍 DEBUG Notificações:", data);
+        
+        alert(`DEBUG:\nDjango: ${data.django.total} notificações\nFirestore: ${data.firestore.total} notificações\n\nVerifique o console para detalhes.`);
+        
+    } catch (error) {
+        console.error('Erro no debug:', error);
+        this.mostrarErro('Erro no debug');
+    }
+}
+    
+    setupAutoRefresh() {
+        // Atualizar a cada 30 segundos
+        setInterval(() => {
+            if (!this.carregando) {
+                this.verificarNovasNotificacoes();
+            }
+        }, 30000);
+    }
+    
+    async carregarNotificacoes() {
+        if (this.carregando) return;
+        
+        this.carregando = true;
+        $('#loading-notificacoes').show();
+        $('#lista-notificacoes').hide();
+        $('#sem-notificacoes').hide();
+        $('#carregar-mais-container').hide();
+        
+        try {
+            const params = new URLSearchParams({
+                limit: this.limit,
+                offset: this.offset,
+                apenas_nao_lidas: $('#filtro-status').val() === 'nao_lidas'
+            });
+            
+            if ($('#filtro-tipo').val()) {
+                params.append('tipo', $('#filtro-tipo').val());
+            }
+            
+            if ($('#filtro-data').val()) {
+                params.append('data', $('#filtro-data').val());
+            }
+            
+            const response = await fetch(`/api/notificacoes/?${params}`);
+            const data = await response.json();
+            
+            this.exibirNotificacoes(data.notificacoes);
+            
+            if (data.notificacoes.length === 0 && this.offset === 0) {
+                $('#sem-notificacoes').show();
+            }
+            
+            if (data.notificacoes.length === this.limit) {
+                $('#carregar-mais-container').show();
+            }
+            
+        } catch (error) {
+            console.error('Erro ao carregar notificações:', error);
+            this.mostrarErro('Erro ao carregar notificações');
+        } finally {
+            this.carregando = false;
+            $('#loading-notificacoes').hide();
+            $('#lista-notificacoes').show();
+        }
+    }
+    
+    exibirNotificacoes(notificacoes) {
+        const container = $('#lista-notificacoes');
+        
+        if (this.offset === 0) {
+            container.empty();
+        }
+        
+        if (notificacoes.length === 0) {
+            container.html(`
+                <div class="text-center py-4">
+                    <i class="bi bi-bell-slash display-4 text-muted"></i>
+                    <h5 class="mt-3 text-muted">Nenhuma notificação encontrada</h5>
+                    <p class="text-muted">Tente alterar os filtros ou sincronizar novamente.</p>
+                </div>
+            `);
+            return;
+        }
+        
+        notificacoes.forEach(notificacao => {
+            const notificacaoHtml = this.criarNotificacaoHTML(notificacao);
+            container.append(notificacaoHtml);
+        });
+    }
+    
+    criarNotificacaoHTML(notificacao) {
+        const data = new Date(notificacao.timestamp);
+        const dataFormatada = data.toLocaleString('pt-BR');
+        
+        const icones = {
+            'sistema_alerta_estacionamento': 'bi-car-front-fill text-warning',
+            'reserva_confirmada': 'bi-check-circle-fill text-success',
+            'alerta_saida': 'bi-exclamation-triangle-fill text-danger',
+            'sistema_erro': 'bi-bug-fill text-danger'
+        };
+        
+        const icone = icones[notificacao.tipo] || 'bi-bell-fill text-primary';
+        
+        return `
+            <div class="notificacao-item border-bottom pb-3 mb-3 ${notificacao.lida ? '' : 'bg-light'}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi ${icone} me-2"></i>
+                            <h6 class="mb-0 ${notificacao.lida ? '' : 'fw-bold'}">
+                                ${notificacao.tipo_display}
+                            </h6>
+                            ${!notificacao.lida ? '<span class="badge bg-primary ms-2">Nova</span>' : ''}
+                        </div>
+                        <p class="mb-1">${notificacao.motivo}</p>
+                        <div class="text-muted small">
+                            <span class="me-3"><i class="bi bi-signpost-fill"></i> Vaga: ${notificacao.vaga_id}</span>
+                            <span class="me-3"><i class="bi bi-car-front-fill"></i> Placa: ${notificacao.placa}</span>
+                            <span><i class="bi bi-clock"></i> ${dataFormatada}</span>
+                        </div>
+                    </div>
+                    <div class="btn-group ms-3">
+                        ${!notificacao.lida ? `
+                            <button class="btn btn-sm btn-outline-success btn-marcar-lida" data-id="${notificacao.id}">
+                                <i class="bi bi-check"></i>
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-outline-danger btn-excluir" data-id="${notificacao.id}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    async marcarComoLida(event) {
+        const notificacaoId = $(event.currentTarget).data('id');
+        
+        try {
+            const response = await fetch('/api/notificacoes/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                },
+                body: JSON.stringify({
+                    acao: 'marcar_como_lida',
+                    notificacao_id: notificacaoId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                $(event.currentTarget).closest('.notificacao-item').removeClass('bg-light').find('.fw-bold').removeClass('fw-bold');
+                $(event.currentTarget).closest('.btn-group').find('.btn-marcar-lida').remove();
+                this.mostrarSucesso('Notificação marcada como lida');
+                this.atualizarContador();
+            } else {
+                this.mostrarErro(data.error);
+            }
+            
+        } catch (error) {
+            console.error('Erro ao marcar notificação como lida:', error);
+            this.mostrarErro('Erro ao marcar notificação como lida');
+        }
+    }
+    
+    async marcarTodasComoLidas() {
+        try {
+            const response = await fetch('/api/notificacoes/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                },
+                body: JSON.stringify({
+                    acao: 'marcar_todas_como_lidas'
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                $('.notificacao-item').removeClass('bg-light').find('.fw-bold').removeClass('fw-bold');
+                $('.btn-marcar-lida').remove();
+                this.atualizarContador(0);
+                this.mostrarSucesso('Todas as notificações marcadas como lidas');
+            } else {
+                this.mostrarErro(data.error);
+            }
+            
+        } catch (error) {
+            console.error('Erro ao marcar notificações como lidas:', error);
+            this.mostrarErro('Erro ao marcar notificações como lidas');
+        }
+    }
+    
+    async excluirNotificacao(event) {
+        const notificacaoId = $(event.currentTarget).data('id');
+        
+        if (!confirm('Tem certeza que deseja excluir esta notificação?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/notificacoes/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                },
+                body: JSON.stringify({
+                    acao: 'excluir',
+                    notificacao_id: notificacaoId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                $(event.currentTarget).closest('.notificacao-item').remove();
+                this.atualizarContador();
+                this.mostrarSucesso('Notificação excluída com sucesso');
+            } else {
+                this.mostrarErro(data.error);
+            }
+            
+        } catch (error) {
+            console.error('Erro ao excluir notificação:', error);
+            this.mostrarErro('Erro ao excluir notificação');
+        }
+    }
+    
+    async sincronizar() {
+        $('#btn-sincronizar').prop('disabled', true).html('<i class="bi bi-arrow-clockwise spinner-border spinner-border-sm"></i> Sincronizando...');
+        
+        try {
+            const response = await fetch('/api/notificacoes/sincronizar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.mostrarSucesso(`${data.sincronizadas} notificações sincronizadas`);
+                this.offset = 0;
+                this.carregarNotificacoes();
+            } else {
+                this.mostrarErro(data.error);
+            }
+            
+        } catch (error) {
+            console.error('Erro ao sincronizar:', error);
+            this.mostrarErro('Erro ao sincronizar notificações');
+        } finally {
+            $('#btn-sincronizar').prop('disabled', false).html('<i class="bi bi-arrow-clockwise"></i> Sincronizar');
+        }
+    }
+    
+    carregarMais() {
+        this.offset += this.limit;
+        this.carregarNotificacoes();
+    }
+    
+    async verificarNovasNotificacoes() {
+        try {
+            const response = await fetch('/api/notificacoes/?limit=1');
+            const data = await response.json();
+            
+            if (data.nao_lidas > parseInt($('.badge').text() || 0)) {
+                this.atualizarContador(data.nao_lidas);
+                this.mostrarNovaNotificacaoToast();
+            }
+            
+        } catch (error) {
+            console.error('Erro ao verificar novas notificações:', error);
+        }
+    }
+    
+    atualizarContador(contador = null) {
+        if (contador === null) {
+            // Buscar contador atualizado
+            fetch('/api/notificacoes/?limit=1')
+                .then(response => response.json())
+                .then(data => {
+                    $('.badge').text(data.nao_lidas);
+                    document.title = data.nao_lidas > 0 ? 
+                        `(${data.nao_lidas}) Notificações - Admin` : 
+                        'Notificações - Admin';
+                });
+        } else {
+            $('.badge').text(contador);
+            document.title = contador > 0 ? 
+                `(${contador}) Notificações - Admin` : 
+                'Notificações - Admin';
+        }
+    }
+    
+    mostrarSucesso(mensagem) {
+        this.mostrarToast(mensagem, 'success');
+    }
+    
+    mostrarErro(mensagem) {
+        this.mostrarToast(mensagem, 'danger');
+    }
+    
+    mostrarNovaNotificacaoToast() {
+        this.mostrarToast('Nova notificação recebida!', 'info');
+    }
+    
+    mostrarToast(mensagem, tipo) {
+        // Implementar toast do Bootstrap
+        const toastId = 'toast-' + Date.now();
+        const toast = $(`
+            <div id="${toastId}" class="toast align-items-center text-white bg-${tipo} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">${mensagem}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `);
+        
+        $('#toast-container').append(toast);
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+        
+        toast.on('hidden.bs.toast', () => {
+            toast.remove();
+        });
+    }
+    
+    getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+}
+
+// Inicializar quando o documento estiver pronto
+$(document).ready(function() {
+    window.notificacoesManager = new NotificacoesManager();
+});
+</script>
+
+<!-- Container para toasts -->
+<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
+

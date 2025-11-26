@@ -9,22 +9,25 @@ print(f"[DEBUG] Tentando carregar credenciais em: {KEY_PATH}")
 
 try:
 	cred = credentials.Certificate(str(KEY_PATH))
-	firebase_admin.initialize_app(cred)
 	print("[SUCESSO] Credenciais carregadas com sucesso.")
 except Exception as e:
 	print(f"[FALHA] Erro ao carregar credenciais: {e}")
 	raise
 
+# --- CORREÇÃO: Garantir que o app seja inicializado apenas uma vez ---
 try:
+	# Tenta obter o app padrão, se já estiver inicializado
 	firebase_app = firebase_admin.get_app()
 	print("[INFO] App Firebase já existia, reaproveitando.")
 except ValueError:
+	# Se não estiver inicializado, inicializa
 	try:
 		firebase_app = firebase_admin.initialize_app(cred)
 		print("[SUCESSO] Firebase inicializado com sucesso.")
 	except Exception as e:
 		print(f"[FALHA] Erro ao inicializar Firebase: {e}")
 		raise
+# --------------------------------------------------------------------
 
 try:
 	db = firestore.client()

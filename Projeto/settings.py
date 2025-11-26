@@ -27,7 +27,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+# Configuração para agendamento de tarefas
+CRONJOBS = [
+    ('*/5 * * * *', 'appHome.management.commands.sincronizar_notificacoes.Command', '>> /tmp/cron.log'),
+]
 # Application definition
 
 INSTALLED_APPS = [

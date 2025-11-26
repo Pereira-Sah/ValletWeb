@@ -10,5 +10,10 @@ urlpatterns = [
     path('gestor/', views.gestor, name="gestor"),
     path('logout/', views.logout_view, name="logout"),
     path("auth/firebase/", firebase_login, name="firebase_login"),
-
+    path('notificacoes/', views.NotificacoesAdminView.as_view(), name='notificacoes_admin'),
+    path('api/notificacoes/', views.NotificacoesAPIView.as_view(), name='api_notificacoes'),
+    path('api/notificacoes/sincronizar/', views.SincronizarNotificacoesView.as_view(), name='sincronizar_notificacoes'),
+    path('api/notificacoes/debug/', views.DebugNotificacoesView.as_view(), name='debug_notificacoes'),  # 🔥 NOVA
+# urls.py
+    path('api/notificacoes/sincronizacao-agressiva/', views.SincronizacaoAgressivaView.as_view(), name='sincronizacao_agressiva'),
 ]
