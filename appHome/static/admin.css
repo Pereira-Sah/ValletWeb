@@ -64,6 +64,7 @@ body {
     font-size: 36px;
 }
 
+
 /* 2. A Imagem: Preenche o Contêiner Quadrado e Não Distorce */
 .profile-pic {
     width: 100%; /* Faz a imagem preencher toda a largura do .avatar (70px) */
@@ -85,7 +86,7 @@ body {
     color: #bbb;
 }
 
-.menu button {
+.menu button , .menu a {
     width: 100%;
     padding: 15px;
     margin: 20px 0;
@@ -99,9 +100,11 @@ body {
     gap: 10px;
     cursor: pointer;
     transition: 0.2s;
+    text-decoration: none;
+    
 }
 
-.menu button:hover {
+.menu button:hover , .menu a:hover {
     background: #F5F5F5 ;
 }
 

@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Vallet</title>
+    <link rel="stylesheet" href="{% static 'admin.css' %}">
+    <link rel="icon" type="image/png" href="{% static 'assets/VALLET (2).png' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="dashboard">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="avatar">
+                    {% if fotoPerfil %}
+                        <img src="{{ fotoPerfil }}" alt="Foto de Perfil" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover;">
+                    {% else %}
+                        <i class="bi bi-person-circle" style="color: black;"></i>
+                    {% endif %}
+                </div>
+                <div class="user-info">
+                    <h3>{{ user_name }}</h3>
+                    <p>{{ user_cargo }}</p>
+                </div>
+            </div>
+            <nav class="menu">
+                <button><a href="{% url 'notificacoes_admin' %}" style="text-decoration: none;color: #046C4E;"><i class="bi bi-bell-fill"></i> Notificações </a></button>
+                <button><a href="{% url 'gestor' %}" style="text-decoration: none;color: #046C4E;"><i class="bi bi-house-door-fill"></i> Dashboard</a></button>
+                <button><i class="bi bi-car-front-fill"></i> Veículos</button>
+                <button><i class="bi bi-calendar-check-fill"></i> Reservas</button>
+                <button><i class="bi bi-wallet2"></i> Financeiro</button>
+            </nav>
+            <a href="{% url 'logout' %}" class="logout-btn"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    
+        </aside>
+<main class="main-content" >
+       {% block content %}
+       {% endblock %}
+        </main>
+
+    </div>
+</body>
+</html>
