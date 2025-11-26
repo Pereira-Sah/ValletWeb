@@ -94,7 +94,8 @@ def firebase_login(request):
             else:
                 id_estacionamento = doc.get("id_estacionamento", "")
                 print(f"[DEBUG] Usuário {uid} associado ao estacionamento (fallback user doc): {id_estacionamento}")
-            
+                
+            fotoPerfil = doc.get("fotoPerfil", "")
             tipo = str(doc.get("tipo_user", "")).lower()
             cargo = str(doc.get("cargo", "")).lower()
             
@@ -108,11 +109,12 @@ def firebase_login(request):
         
         request.session['user_name'] = user_name 
         request.session['user_cargo'] = user_cargo
+        request.session['fotoPerfil'] = fotoPerfil
         request.session['id_estacionamento'] = id_estacionamento 
 
         redirect_url = "/gestor/" if is_gestor else "/"
         if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.content_type == "application/json":
-            return JsonResponse({"ok": True, "uid": uid, "email": email, "redirect": redirect_url})
+            return JsonResponse({"ok": True, "uid": uid, "email": email,"fotoPerfil":fotoPerfil, "redirect": redirect_url})
 
         return HttpResponseRedirect(redirect_url)
     except Exception as e:
@@ -132,6 +134,7 @@ def gestor(request):
     context = {
         'user_name': request.session.get('user_name', 'Visitante'),
         'user_cargo': request.session.get('user_cargo', 'Cargo Desconhecido'),
+
     }
     
     # Valores default 
@@ -251,19 +254,23 @@ def gestor(request):
             print(f"[DEBUG] Erro ao buscar últimas reservas: {e}")
             ultimas_reservas = []
             
+
     # --- PONTO CHAVE DA CORREÇÃO ---
     # 1. Atualizar o contexto com todos os dados coletados
     context.update({
+        'fotoPerfil': request.session.get('fotoPerfil', ''),
         'vagas_total': vagas_total,
         'vagas_ocupadas': vagas_ocupadas,
         'reservas_hoje': reservas_hoje,
         'reservas_pendentes': reservas_pendentes,
+        'nome_vaga_completo': nome_vaga_completo,
         'receita_mensal': receita_mensal,
         'reservas_canceladas': reservas_canceladas,
         'receita_cancelada': receita_cancelada,
         'ultimas_reservas': ultimas_reservas,
         'id_estacionamento_usado': id_estacionamento, # Útil para debug
     })
+    print(f"[DEBUG] Contexto do gestor antes do render: {context}")
     
     # 2. RETORNAR O HttpResponse (renderizando o template)
     return render(request, 'admin.html', context) # Assumindo que o template se chama 'gestor.html'

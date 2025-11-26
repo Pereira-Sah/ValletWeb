@@ -47,16 +47,32 @@ body {
     margin-bottom: 30px;
 }
 
+/* Contêiner: Define o espaço circular. */
+/* 1. O Contêiner: Define o Círculo e Esconde o Excesso */
 .avatar {
     width: 70px;
     height: 70px;
-    border-radius: 50%;
+    border-radius: 50%; /* Faz o contêiner parecer um círculo */
+    /* 🚨 ESSENCIAL: Garante que qualquer coisa que ultrapasse o círculo seja cortada */
+    overflow: hidden; 
+    
     background-color: #fff;
     margin: auto;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 36px;
+}
+
+/* 2. A Imagem: Preenche o Contêiner Quadrado e Não Distorce */
+.profile-pic {
+    width: 100%; /* Faz a imagem preencher toda a largura do .avatar (70px) */
+    height: 100%; /* Faz a imagem preencher toda a altura do .avatar (70px) */
+    /* 🚨 ESSENCIAL: Garante que a imagem preencha o espaço sem distorcer (cortando as bordas retangulares) */
+    object-fit: cover; 
+    
+    /* Nota: O border-radius aqui é redundante se o overflow: hidden está no pai, mas é bom manter */
+    border-radius: 50%; 
 }
 
 .user-info h3 {

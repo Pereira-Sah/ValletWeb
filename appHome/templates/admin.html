@@ -14,7 +14,13 @@
 
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="avatar"><i class="bi bi-person-circle" style="color: black;"></i></div>
+                <div class="avatar">
+                    {% if fotoPerfil %}
+                        <img src="{{ fotoPerfil }}" alt="Foto de Perfil" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover;">
+                    {% else %}
+                        <i class="bi bi-person-circle" style="color: black;"></i>
+                    {% endif %}
+                </div>
                 <div class="user-info">
                     <h3>{{ user_name }}</h3>
                     <p>{{ user_cargo }}</p>
