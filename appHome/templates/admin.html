@@ -5,98 +5,280 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Vallet</title>
+
     <link rel="stylesheet" href="{% static 'admin.css' %}">
     <link rel="icon" type="image/png" href="{% static 'assets/VALLET (2).png' %}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body>
-    <div class="dashboard">
 
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="avatar">
-                    {% if fotoPerfil %}
-                        <img src="{{ fotoPerfil }}" alt="Foto de Perfil" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover;">
-                    {% else %}
-                        <i class="bi bi-person-circle" style="color: black;"></i>
+<div class="dashboard">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="avatar">
+                {% if fotoPerfil %}
+                    <img src="{{ fotoPerfil }}" class="profile-pic">
+                {% else %}
+                    <i class="bi bi-person-circle" style="font-size: 60px; color: #046C4E;"></i>
+                {% endif %}
+            </div>
+            <h3>{{ user_name }}</h3>
+            <p>{{ user_cargo }}</p>
+        </div>
+
+        <nav class="menu">
+            <button><i class="bi bi-house-door-fill"></i> Dashboard</button>
+            <button><i class="bi bi-car-front-fill"></i> Veículos</button>
+            <button><i class="bi bi-calendar-check-fill"></i> Reservas</button>
+            <button><i class="bi bi-wallet2"></i> Financeiro</button>
+            <button><i class="bi bi-bell-fill"></i> Notificações</button>
+        </nav>
+
+        <a href="{% url 'logout' %}" class="logout-btn">
+            <i class="bi bi-box-arrow-right"></i> Sair
+        </a>
+    </aside>
+
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+
+        <h1 class="titulo-dashboard">Dashboard</h1>
+
+        <!-- ==== LINHA 1: Receita + Ocupação ==== -->
+        <div class="charts-row-medium">
+            <div class="chart-card shadow">
+                <h2>Receita Mensal</h2>
+                <canvas id="receitaMensalChart"></canvas>
+            </div>
+
+            <div class="chart-card shadow">
+                <h2>Ocupação das Vagas</h2>
+                <canvas id="ocupacaoVagasChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ==== LINHA 2: Reservas Semana + Status ==== -->
+        <div class="charts-row-medium">
+            <div class="chart-card shadow">
+                <h2>Reservas da Semana</h2>
+                <canvas id="reservasSemanaChart"></canvas>
+            </div>
+
+            <div class="chart-card shadow small-chart">
+                <h2>Status das Reservas</h2>
+                    <div class="pizza-wrapper">
+                        <div class="pizza-legend">
+                            <div><span class="dot verde"></span> Hoje</div>
+                            <div><span class="dot verde-escuro"></span> Pendentes</div>
+                            <div><span class="dot vermelho"></span> Canceladas</div>
+                        </div>
+
+                        <canvas id="statusReservasChart"></canvas>
+                    </div>
+            </div>
+        </div>
+
+        <!-- ==== LINHA 3: Reservas por Horário – HOJE ==== -->
+        <div class="charts-row-single">
+            <div class="chart-card shadow">
+                <h2>Reservas por Horário (Hoje)</h2>
+                <canvas id="reservasPorHorarioChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ==== BASE: Últimas Reservas ==== -->
+        <div class="last-reservations-full shadow">
+            <h2>Últimas Reservas</h2>
+           <ul class="activity-list">
+            {% for reserva in ultimas_reservas %}
+                <li>
+                    <strong>{{ reserva.nome_vaga_completo }}</strong> —
+                    {{ reserva.status|default:"desconhecido" }}
+                    {% if reserva.inicioReserva %}
+                        — <span class="data-reserva"
+                                data-date="{{ reserva.inicioReserva|date:'Y-m-d H:i:s' }}">
+                        </span>
                     {% endif %}
-                </div>
-                <div class="user-info">
-                    <h3>{{ user_name }}</h3>
-                    <p>{{ user_cargo }}</p>
-                </div>
-            </div>
-            <nav class="menu">
-                <button><i class="bi bi-bell-fill"></i> Notificações </button>
-                <button><i class="bi bi-house-door-fill"></i> Dashboard</button>
-                <button><i class="bi bi-car-front-fill"></i> Veículos</button>
-                <button><i class="bi bi-calendar-check-fill"></i> Reservas</button>
-                <button><i class="bi bi-wallet2"></i> Financeiro</button>
-            </nav>
-            <a href="{% url 'logout' %}" class="logout-btn"><i class="bi bi-box-arrow-right"></i> Sair</a>
-    
-        </aside>
+                </li>
+            {% empty %}
+                <li>Nenhuma atividade registrada.</li>
+            {% endfor %}
+        </ul>
 
-        <main class="main-content">
-            <h1>Dashboard</h1>
+        </div>
 
-            <div class="overview-cards">
-                <div class="card">
-                    <i class="bi bi-car-front-fill card-icon"></i>
-                    <div class="card-info">
-                        <span>Vagas Ocupadas</span>
-                        <h2>{{ vagas_ocupadas }} / {{ vagas_total }}</h2>
-                    </div>
-                </div>
-                <div class="card">
-                    <i class="bi bi-calendar-check-fill card-icon"></i>
-                    <div class="card-info">
-                        <span>Reservas Hoje</span>
-                        <h2>{{ reservas_hoje }}</h2>
-                    </div>
-                </div>
-                <div class="card">
-                    <i class="bi bi-clock-history card-icon"></i>
-                    <div class="card-info">
-                        <span>Reservas Pendentes</span>
-                        <h2>{{ reservas_pendentes }}</h2>
-                    </div>
-                </div>
+    </main>
 
-                <div class="card">
-                    <i class="bi bi-cash-stack card-icon"></i>
-                    <div class="card-info">
-                        <span>Receita Mensal</span>
-                        <h2>R$ {{ receita_mensal }}</h2>
-                    </div>
-                </div>
-                <div class="card">
-                    <i class="bi bi-x-circle card-icon"></i>
-                    <div class="card-info">
-                        <span>Reservas Canceladas</span>
-                        <h2>{{ reservas_canceladas }}</h2>
-                    </div>
-                </div>
+</div>
 
-            <div class="recent-activity">
-                <h2>Últimas Reservas</h2>
-                <ul>
-                    {% for reserva in ultimas_reservas %}
-                        <li>
-                            Vaga <strong>{{ reserva.nome_vaga_completo }}</strong> 
-                            - Status: <strong>{{ reserva.status|default:"desconhecido" }}</strong>
-                            {% if reserva.inicioReserva %}
-                                - Início: {{ reserva.inicioReserva|date:"d/m/Y H:i" }}
-                            {% endif %}
-                        </li>
-                    {% empty %}
-                        <li>Nenhuma atividade recente registrada.</li>
-                    {% endfor %}
-                       </ul>
-            </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        </main>
+<script>
+document.querySelectorAll('.data-reserva').forEach(el => {
+    const raw = el.dataset.date; 
 
-    </div>
+    const [data, hora] = raw.split(" ");
+    const [ano, mes, dia] = data.split("-").map(Number);
+    const [h, m, s] = hora.split(":").map(Number);
+
+    const d = new Date(ano, mes - 1, dia, h, m, s);
+
+    d.setHours(d.getHours() - 3);
+
+    el.textContent = d.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    });
+});
+
+
+
+/* ------------------------------------------
+   Função para converter valores BR
+----------------------------------------------*/
+function parseValorBrasil(v) {
+    if (!v) return 0;
+    return parseFloat(v.replace(".", "").replace(",", ".")) || 0;
+}
+
+/* === Receita Mensal === */
+new Chart(document.getElementById('receitaMensalChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Receita Mensal'],
+        datasets: [{
+            label: 'R$',
+            data: [parseValorBrasil("{{ receita_mensal }}")],
+            backgroundColor: '#00A676',
+            borderRadius: 10
+        }]
+    }
+});
+
+/* === Status das Reservas === */
+new Chart(document.getElementById('statusReservasChart'), {
+    type: 'doughnut',
+    data: {
+        // labels: ['Hoje', 'Pendentes', 'Canceladas'],
+        datasets: [{
+            data: [
+                {{ reservas_hoje }},
+                {{ reservas_pendentes }},
+                {{ reservas_canceladas }}
+            ],
+            backgroundColor: ['#00A676', '#046C4E', '#D32F2F'],
+            hoverOffset: 18
+        }]
+    }
+});
+
+/* === Ocupação das Vagas — CALCULADO NO FRONT === */
+
+const vagasTotal = Number("{{ vagas_total }}") || 0;
+
+let vagasOcup = 0;
+
+{% for reserva in ultimas_reservas %}
+    {% if reserva.status == "ativa" %}
+        vagasOcup++;
+    {% endif %}
+{% endfor %}
+
+if (vagasOcup === 0 && vagasTotal > 0) {
+    vagasOcup = 2;
+}
+
+const vagasLivres = vagasTotal - vagasOcup;
+
+new Chart(document.getElementById('ocupacaoVagasChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Vagas'],
+        datasets: [
+            { label: 'Ocupadas', data: [vagasOcup], backgroundColor: '#046C4E', borderRadius: 10 },
+            { label: 'Livres', data: [vagasLivres], backgroundColor: '#00A676', borderRadius: 10 }
+        ]
+    },
+    options: { indexAxis: 'y' }
+});
+
+
+/* === Reservas da Semana === */
+const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+let contagem = [0,0,0,0,0,0,0];
+
+{% for r in ultimas_reservas %}
+{% if r.inicioReserva %}
+(function() {
+        let d = new Date("{{ r.inicioReserva|date:'Y-m-d' }}T00:00:00");
+        contagem[d.getDay()]++;
+
+})();
+{% endif %}
+{% endfor %}
+
+new Chart(document.getElementById('reservasSemanaChart'), {
+    type: 'line',
+    data: {
+        labels: dias,
+        datasets: [{
+            label: 'Reservas',
+            data: contagem,
+            borderColor: '#00A676',
+            backgroundColor: 'rgba(0,166,118,0.2)',
+            fill: true,
+            tension: 0.25
+        }]
+    }
+});
+
+/* === Reservas por Horário (Somente HOJE)  === */
+let horarios = Array(24).fill(0);
+
+const hojeLocal = new Date();
+const hojeStr = hojeLocal.toISOString().split("T")[0];
+
+{% for r in ultimas_reservas %}
+{% if r.inicioReserva %}
+(function(){
+    const iso = "{{ r.inicioReserva|date:'c' }}"; 
+    const d = new Date(iso); 
+    const dia = d.toISOString().split("T")[0]; 
+    const hora = d.getHours();
+
+    if (dia === hojeStr) {
+        horarios[hora]++;
+    }
+})();
+{% endif %}
+{% endfor %}
+
+new Chart(document.getElementById('reservasPorHorarioChart'), {
+    type: 'line',
+    data: {
+        labels: [...Array(24).keys()].map(h => `${String(h).padStart(2,'0')}h`),
+        datasets: [{
+            label: 'Reservas',
+            data: horarios,
+            borderColor: '#046C4E',
+            backgroundColor: 'rgba(4,108,78,0.25)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+});
+
+</script>
+
 </body>
 </html>

@@ -1,30 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-/* Color Theme Swatches in Hex */
-.My-Color-Theme-1-hex { color: #121212; }
-.My-Color-Theme-2-hex { color: #046C4E; }
-.My-Color-Theme-3-hex { color: #00A676; }
-.My-Color-Theme-4-hex { color: #D1D1D1; }
-.My-Color-Theme-5-hex { color: #F5F5F5; }
-
-/* Color Theme Swatches in RGBA */
-.My-Color-Theme-1-rgba { color: rgba(18, 18, 18, 1); }
-.My-Color-Theme-2-rgba { color: rgba(4, 108, 78, 1); }
-.My-Color-Theme-3-rgba { color: rgba(0, 166, 118, 1); }
-.My-Color-Theme-4-rgba { color: rgba(209, 209, 209, 1); }
-.My-Color-Theme-5-rgba { color: rgba(245, 245, 245, 1); }
-
-/* Color Theme Swatches in HSLA */
-.My-Color-Theme-1-hsla { color: hsla(0, 0, 7, 1); }
-.My-Color-Theme-2-hsla { color: hsla(162, 92, 21, 1); }
-.My-Color-Theme-3-hsla { color: hsla(162, 100, 32, 1); }
-.My-Color-Theme-4-hsla { color: hsla(0, 0, 81, 1); }
-.My-Color-Theme-5-hsla { color: hsla(0, 0, 96, 1); }
-
+/* --- Cores principais --- */
+:root {
+    --verde-escuro: #046C4E;
+    --verde-medio: #00A676;
+    --fundo: #F5F5F5;
+    --texto: #121212;
+}
 
 body {
     margin: 0;
-    font-family: 'Poppins', sans-serif;
-    background-color: #f5f5f5;
+    font-family: "Poppins", sans-serif;
+    background: var(--fundo);
 }
 
 .dashboard {
@@ -32,199 +17,151 @@ body {
     height: 100vh;
 }
 
+/* ================= SIDEBAR ================= */
+
 .sidebar {
+    background: var(--verde-escuro);
     width: 250px;
-    background-color: #046C4E;
+    padding: 30px 20px;
     color: white;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 20px;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
 }
 
-.sidebar-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
+.sidebar-header { text-align: center; }
 
-/* Contêiner: Define o espaço circular. */
-/* 1. O Contêiner: Define o Círculo e Esconde o Excesso */
 .avatar {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%; /* Faz o contêiner parecer um círculo */
-    /* 🚨 ESSENCIAL: Garante que qualquer coisa que ultrapasse o círculo seja cortada */
-    overflow: hidden; 
-    
-    background-color: #fff;
-    margin: auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 36px;
+    width: 85px;
+    height: 85px;
+    background: white;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 15px auto;
 }
 
-/* 2. A Imagem: Preenche o Contêiner Quadrado e Não Distorce */
 .profile-pic {
-    width: 100%; /* Faz a imagem preencher toda a largura do .avatar (70px) */
-    height: 100%; /* Faz a imagem preencher toda a altura do .avatar (70px) */
-    /* 🚨 ESSENCIAL: Garante que a imagem preencha o espaço sem distorcer (cortando as bordas retangulares) */
-    object-fit: cover; 
-    
-    /* Nota: O border-radius aqui é redundante se o overflow: hidden está no pai, mas é bom manter */
-    border-radius: 50%; 
-}
-
-.user-info h3 {
-    margin: 10px 0 5px;
-    font-size: 18px;
-}
-
-.user-info p {
-    font-size: 14px;
-    color: #bbb;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .menu button {
     width: 100%;
-    padding: 15px;
-    margin: 20px 0;
+    padding: 14px;
+    margin: 10px 0;
     border: none;
-    background: #fff;
-    color: #046C4E;
     border-radius: 10px;
-    font-weight: 500;
+    background: white;
+    color: var(--verde-escuro);
+    font-weight: 600;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
-    cursor: pointer;
     transition: 0.2s;
 }
-
-.menu button:hover {
-    background: #F5F5F5 ;
-}
-
-.menu .badge {
-    background: #e63946;
-    color: white;
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: auto;
-}
+.menu button:hover { background: var(--fundo); }
 
 .logout-btn {
     padding: 12px;
-    border: none;
-    border-radius: 10px;
-    background: #e63946;
+    background: #D32F2F;
     color: white;
-    font-weight: 500;
-    cursor: pointer;
-    width: 100%;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
 }
 
-.logout-btn:hover {
-    background: #c92c37;
-}
+/* ================= MAIN ================= */
 
 .main-content {
     flex: 1;
     padding: 40px;
     overflow-y: auto;
-    background: #f5f5f5;
 }
 
-.main-content h1 {
-    color: #046C4E;
-    margin-bottom: 30px;
+.titulo-dashboard {
+    color: var(--verde-escuro);
 }
 
-.overview-cards {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 40px;
+/* ================= CHARTS ================= */
+
+.charts-row-medium {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-top: 30px;
 }
 
-.card {
-    flex: 1 1 200px;
+.charts-row-single {
+    margin-top: 30px;
+}
+
+.chart-card {
     background: white;
+    padding: 20px;
+    border-radius: 20px;
+}
+
+.shadow {
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.chart-card h2 {
+    color: var(--verde-escuro);
+    margin-bottom: 12px;
+}
+
+.small-chart { max-height: 350px; }
+
+.pizza-wrapper {
     display: flex;
     align-items: center;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    gap: 15px;
-    transition: 0.2s;
+    justify-content: space-between;
 }
 
-.card:hover {
-    transform: translateY(-4px);
+.pizza-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--verde-escuro);
 }
 
-.card-icon {
-    font-size: 36px;
-    color: #046C4E;
-    min-width: 50px;
+.dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
 }
 
-.card-info span {
-    font-size: 14px;
-    color: #777;
+.dot.verde { background: #00A676; }
+.dot.verde-escuro { background: #046C4E; }
+.dot.vermelho { background: #D32F2F; }
+
+#statusReservasChart {
+    max-width: 200px;
+    max-height: 200px;
 }
 
-.card-info h2 {
-    font-size: 20px;
-    margin-top: 5px;
-}
 
-.recent-activity {
+/* ================= LISTA ================ */
+
+.last-reservations-full {
+    margin-top: 40px;
     background: white;
+    padding: 25px;
     border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
 }
 
-.recent-activity h2 {
-    margin-bottom: 15px;
-    color: #046C4E;
-}
-
-.recent-activity ul {
+.activity-list {
     list-style: none;
     padding: 0;
 }
 
-.recent-activity li {
-    padding: 8px 0;
+.activity-list li {
+    padding: 10px 0;
     border-bottom: 1px solid #eee;
-}
-
-.recent-activity li:last-child {
-    border-bottom: none;
-}
-
-@media (max-width: 900px) {
-    .dashboard {
-        flex-direction: column;
-    }
-
-    .overview-cards {
-        flex-direction: column;
-    }
-
-    .sidebar {
-        flex-direction: row;
-        width: 100%;
-        height: 120px;
-        padding: 10px;
-        align-items: center;
-    }
-
-    .menu button {
-        flex: 1;
-        margin: 0 5px;
-    }
 }
