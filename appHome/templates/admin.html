@@ -27,7 +27,7 @@
                 <button><i class="bi bi-calendar-check-fill"></i> Reservas</button>
                 <button><i class="bi bi-wallet2"></i> Financeiro</button>
             </nav>
-            <button class="logout-btn" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Sair</button>
+            <a href="{% url 'logout' %}" class="logout-btn"><i class="bi bi-box-arrow-right"></i> Sair</a>
     
         </aside>
 
@@ -64,25 +64,29 @@
                         <h2>R$ {{ receita_mensal }}</h2>
                     </div>
                 </div>
-            </div>
+                <div class="card">
+                    <i class="bi bi-x-circle card-icon"></i>
+                    <div class="card-info">
+                        <span>Reservas Canceladas</span>
+                        <h2>{{ reservas_canceladas }}</h2>
+                    </div>
+                </div>
 
             <div class="recent-activity">
                 <h2>Últimas Reservas</h2>
                 <ul>
                     {% for reserva in ultimas_reservas %}
                         <li>
-                            {{ reserva.nome_cliente }} 
-                            {% if reserva.tipo_movimento|lower == 'entrada' %}
-                                entrou
-                            {% else %}
-                                saiu
+                            Vaga <strong>{{ reserva.nome_vaga_completo }}</strong> 
+                            - Status: <strong>{{ reserva.status|default:"desconhecido" }}</strong>
+                            {% if reserva.inicioReserva %}
+                                - Início: {{ reserva.inicioReserva|date:"d/m/Y H:i" }}
                             {% endif %}
-                            na vaga {{ reserva.vaga_num }} às {{ reserva.hora }}
                         </li>
                     {% empty %}
                         <li>Nenhuma atividade recente registrada.</li>
                     {% endfor %}
-                </ul>
+                       </ul>
             </div>
 
         </main>
