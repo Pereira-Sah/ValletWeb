@@ -1,65 +1,236 @@
 {% extends "base.html" %}
 {% load static %}
-{% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">
-                    <i class="bi bi-bell-fill me-2"></i>Lista de Notificações
-                </h1>
-            </div>
 
-            <!-- Lista de Notificações (Apenas os Cartões de Dados) -->
-            <div class="card">
-                <div class="card-body">
-                    <div id="lista-notificacoes">
-                        {% if notificacoes %}
-                            {% for notificacao in notificacoes %}
-                            <div class="notificacao-item border-bottom pb-3 mb-3 {% if not notificacao.lida %}bg-light{% endif %}">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <i class="bi 
-                                                {% if notificacao.tipo == 'sistema_alerta_estacionamento' %}bi-car-front-fill text-warning
-                                                {% elif notificacao.tipo == 'reserva_confirmada' %}bi-check-circle-fill text-success
-                                                {% elif notificacao.tipo == 'alerta_saida' %}bi-exclamation-triangle-fill text-danger
-                                                {% else %}bi-bell-fill text-primary{% endif %} 
-                                                me-2"></i>
-                                            <h6 class="mb-0 {% if not notificacao.lida %}fw-bold{% endif %}">
-                                                {{ notificacao.get_tipo_display }}
-                                            </h6>
-                                            {% if not notificacao.lida %}
-                                            <span class="badge bg-primary ms-2">Nova</span>
-                                            {% endif %}
-                                        </div>
-                                        <p class="mb-1">{{ notificacao.motivo }}</p>
-                                        <div class="text-muted small">
-                                            <span class="me-3"><i class="bi bi-signpost-fill"></i> Vaga: {{ notificacao.vaga_id }}</span>
-                                            <span class="me-3"><i class="bi bi-car-front-fill"></i> Placa: {{ notificacao.placa }}</span>
-                                            <span><i class="bi bi-clock"></i> {{ notificacao.timestamp|date:"d/m/Y H:i" }}</span>
-                                        </div>
-                                    </div>
-                                    <!-- Botões de ação (Marcar Lida/Excluir) removidos daqui -->
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="text-center py-4">
-                                <i class="bi bi-bell-slash display-4 text-muted"></i>
-                                <h5 class="mt-3 text-muted">Nenhuma notificação encontrada</h5>
-                                <p class="text-muted">As notificações do sistema aparecerão aqui.</p>
-                            </div>
+{% block tituloPagina %}Notificações{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'notificacoes.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="notificacoes-container">
+    <!-- Cabeçalho -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-bell-fill me-2"></i>Notificações
+            </h1>
+        </div>
+        {% if notificacoes_nao_lidas > 0 %}
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="marcar_todas_como_lidas">
+            <button type="submit" class="btn-success btn-filtro">
+                <i class="bi bi-check-all"></i> Marcar Todas Lidas
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Mensagens -->
+    {% if messages %}
+    <div class="mensagens-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            <i class="bi 
+                {% if message.tags == 'success' %}bi-check-circle-fill
+                {% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-circle-fill
+                {% else %}bi-info-circle-fill
+                {% endif %}">
+            </i>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Filtros em linha -->
+    <div class="filtros-linha">
+        <form method="get" id="filtros-form">
+            <div class="filtros-grid">
+                <!-- Tipo -->
+                <div class="filtro-grupo">
+                    <label class="filtro-label" for="tipo">
+                        <i class="bi bi-tag me-1"></i>Tipo
+                    </label>
+                    <select name="tipo" id="tipo" class="filtro-select">
+                        <option value="">Todos os tipos</option>
+                        {% for tipo_code, tipo_name in tipos_notificacao %}
+                        <option value="{{ tipo_code }}" 
+                            {% if filtro_tipo == tipo_code %}selected{% endif %}>
+                            {{ tipo_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Placa/Motivo -->
+                <div class="filtro-grupo">
+                    <label class="filtro-label" for="placa">
+                        <i class="bi bi-search me-1"></i>Placa ou Motivo
+                    </label>
+                    <input type="text" name="placa" id="placa" class="filtro-input" 
+                           placeholder="Digite para buscar..." 
+                           value="{{ filtro_placa }}">
+                </div>
+
+                <!-- Data Início -->
+                <div class="filtro-grupo">
+                    <label class="filtro-label" for="data_inicio">
+                        <i class="bi bi-calendar me-1"></i>Data Início
+                    </label>
+                    <input type="date" name="data_inicio" id="data_inicio" 
+                           class="filtro-input" value="{{ filtro_data_inicio }}">
+                </div>
+
+                <!-- Data Fim -->
+                <div class="filtro-grupo">
+                    <label class="filtro-label" for="data_fim">
+                        <i class="bi bi-calendar me-1"></i>Data Fim
+                    </label>
+                    <input type="date" name="data_fim" id="data_fim" 
+                           class="filtro-input" value="{{ filtro_data_fim }}">
+                </div>
+
+               
+            </div>
+            <div class="filtrosButton">
+                <div class="filtro-grupo">
+                    <div class="filtro-check">
+                        <input type="checkbox" name="apenas_nao_lidas" 
+                               id="apenas_nao_lidas" 
+                               {% if not filtro_tipo and not filtro_placa and not filtro_data_inicio and not filtro_data_fim %}checked{% elif filtro_apenas_nao_lidas %}checked{% endif %}>
+                        <label for="apenas_nao_lidas">
+                            Apenas não lidas
+                        </label>
+                    </div>
+                </div>
+            <!-- Botões -->
+            <div class="filtros-botoes">
+                <button type="submit" class="btn-filtro btn-primary">
+                    <i class="bi bi-funnel-fill"></i> Aplicar Filtros
+                </button>
+                <a href="{% url 'notificacoes_admin' %}" class="btn-filtro btn-secondary">
+                    <i class="bi bi-x-circle"></i> Limpar
+                </a>
+            </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de notificações como cartões -->
+    <div class="notificacoes-grid" id="lista-notificacoes">
+        {% if notificacoes_com_vaga %}
+            {% for item in notificacoes_com_vaga %}
+            <div class="notificacao-card {% if not item.obj.lida %}nao-lida{% else %}lida{% endif %}">
+                <div class="notificacao-header">
+                    <span class="notificacao-tipo tipo-{{ item.obj.tipo }}">
+                        {{ item.obj.get_tipo_display }}
+                    </span>
+                    <div class="notificacao-acoes">
+                        <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="notificacao_id" value="{{ item.obj.id }}">
+                            {% if not item.obj.lida %}
+                            <input type="hidden" name="acao" value="marcar_como_lida">
+                            <button type="submit" class="btn-acao btn-success" title="Marcar como lida">
+                                <i class="bi bi-check"></i>
+                            </button>
+                            {% else %}
+                            <input type="hidden" name="acao" value="marcar_como_nao_lida">
+                            <button type="submit" class="btn-acao btn-warning" title="Marcar como não lida">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            {% endif %}
+                        </form>
+                        <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="notificacao_id" value="{{ item.obj.id }}">
+                            <input type="hidden" name="acao" value="excluir">
+                            <button type="submit" class="btn-acao btn-danger" 
+                                    onclick="return confirm('Excluir esta notificação?')"
+                                    title="Excluir">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="notificacao-conteudo">
+                    <h4 class="notificacao-titulo">{{ item.obj.motivo }}</h4>
+                    
+                    <div class="notificacao-detalhes">
+                        {% if item.obj.placa %}
+                        <div class="detalhe-item">
+                            <i class="bi bi-car-front"></i>
+                            <span>Placa: {{ item.obj.placa }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.numero_vaga %}
+                        <div class="detalhe-item">
+                            <i class="bi bi-p-square"></i>
+                            <span>Vaga: {{ item.numero_vaga }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.obj.usuario_id %}
+                        <div class="detalhe-item">
+                            <i class="bi bi-person"></i>
+                            <span>Usuário: {{ item.obj.usuario_id|truncatechars:12 }}</span>
+                        </div>
                         {% endif %}
                     </div>
-                    
-                    <!-- Botão "Carregar Mais" removido -->
+                </div>
+                
+                <div class="notificacao-footer">
+                    <div class="notificacao-data">
+                        <i class="bi bi-clock"></i>
+                        <span>{{ item.obj.timestamp|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    {% if not item.obj.lida %}
+                    <span class="badge bg-warning">NÃO LIDA</span>
+                    {% else %}
+                    <span class="badge bg-success">LIDA</span>
+                    {% endif %}
                 </div>
             </div>
-        </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-bell-slash"></i>
+                <h4>Nenhuma notificação encontrada</h4>
+                <p>Não há notificações que correspondam aos filtros aplicados.</p>
+                <a href="{% url 'notificacoes_admin' %}" class="btn-filtro btn-primary mt-3">
+                    <i class="bi bi-arrow-clockwise"></i> Limpar filtros
+                </a>
+            </div>
+        {% endif %}
     </div>
 </div>
 
-<!-- Todo o bloco <script> e o container de toast foram removidos -->
-
+<script>
+// Scripts simples
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus no campo de busca
+    const placaInput = document.getElementById('placa');
+    if (placaInput && !placaInput.value) {
+        placaInput.focus();
+    }
+    
+    // Atualizar título da página com contador
+    function atualizarTitulo() {
+        const naoLidas = {{ notificacoes_nao_lidas|default:0 }};
+        const baseTitle = "Notificações";
+        
+        if (naoLidas > 0) {
+            document.title = `(${naoLidas}) ${baseTitle}`;
+        } else {
+            document.title = baseTitle;
+        }
+    }
+    
+    atualizarTitulo();
+});
+</script>
 {% endblock %}

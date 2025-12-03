@@ -8,9 +8,11 @@ import json
 from firebase_admin import auth as fb_auth
 import firebase.firebase_init as fi
 from datetime import date, datetime
-from django.core.serializers.json import DjangoJSONEncoder  # <-- para serializar datetime
-
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Q 
+from django.contrib import messages  
 User = get_user_model()
+
 
 # --- Função utilitária para contar reservas do dia ---
 def contar_reservas_hoje(id_estacionamento: str) -> int:
@@ -297,17 +299,172 @@ from datetime import datetime
 class NotificacoesAdminView(LoginRequiredMixin, TemplateView):
     template_name = 'notificacoes.html'
     
+    def get_template_names(self):
+        # 🔥 SE FOR REQUISIÇÃO AJAX, RETORNAR APENAS O PARTIAL
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return ['partials/_notificacoes_list.html']
+        return [self.template_name]
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Buscar notificações do banco Django
-        notificacoes = NotificacaoAdmin.objects.all().order_by('-timestamp')[:50]
-        context['notificacoes'] = notificacoes
+        # 🔥 ADICIONAR INFORMAÇÕES DO USUÁRIO LOGADO À SESSÃO
+        context.update({
+            'user_name': self.request.session.get('user_name', 'Visitante'),
+            'user_cargo': self.request.session.get('user_cargo', 'Cargo Desconhecido'),
+            'fotoPerfil': self.request.session.get('fotoPerfil', ''),
+            'id_estacionamento': self.request.session.get('id_estacionamento', ''),
+        })
         
-        # Contar notificações não lidas
-        context['notificacoes_nao_lidas'] = NotificacaoAdmin.objects.filter(lida=False).count()
+        # 🔥 FILTROS: Obter parâmetros da URL
+        tipo_filtro = self.request.GET.get('tipo', '')
+        placa_filtro = self.request.GET.get('placa', '')
+        data_inicio = self.request.GET.get('data_inicio', '')
+        data_fim = self.request.GET.get('data_fim', '')
+        apenas_nao_lidas = self.request.GET.get('apenas_nao_lidas', '')
+        
+        # Query base
+        notificacoes_query = NotificacaoAdmin.objects.all()
+        
+        # 🔥 APLICAR FILTROS
+        if tipo_filtro:
+            notificacoes_query = notificacoes_query.filter(tipo=tipo_filtro)
+        
+        if placa_filtro:
+            notificacoes_query = notificacoes_query.filter(
+                Q(placa__icontains=placa_filtro) | 
+                Q(motivo__icontains=placa_filtro)
+            )
+        
+        if data_inicio:
+            try:
+                data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+                notificacoes_query = notificacoes_query.filter(timestamp__date__gte=data_inicio_obj)
+            except ValueError:
+                pass
+        
+        if data_fim:
+            try:
+                data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+                notificacoes_query = notificacoes_query.filter(timestamp__date__lte=data_fim_obj)
+            except ValueError:
+                pass
+        
+        if apenas_nao_lidas == 'on':
+            notificacoes_query = notificacoes_query.filter(lida=False)
+        
+        # Ordenar e limitar
+        notificacoes = notificacoes_query.order_by('-timestamp')[:100]
+        
+        # Buscar todos os números das vagas de uma vez
+        numeros_vagas = self.get_numeros_vagas_em_lote(notificacoes)
+        
+        notificacoes_com_vaga = []
+        for notificacao in notificacoes:
+            numero_vaga = numeros_vagas.get(notificacao.vaga_id, notificacao.vaga_id)
+            notificacoes_com_vaga.append({
+                'obj': notificacao,
+                'numero_vaga': numero_vaga
+            })
+        
+        # 🔥 CONTAGENS
+        total_notificacoes = NotificacaoAdmin.objects.count()
+        notificacoes_nao_lidas = NotificacaoAdmin.objects.filter(lida=False).count()
+        
+        context.update({
+            'notificacoes_com_vaga': notificacoes_com_vaga,
+            'notificacoes_nao_lidas': notificacoes_nao_lidas,
+            'total_notificacoes': total_notificacoes,
+            'tipos_notificacao': NotificacaoAdmin.TIPOS_NOTIFICACAO,
+            
+            # 🔥 Manter valores dos filtros ativos
+            'filtro_tipo': tipo_filtro,
+            'filtro_placa': placa_filtro,
+            'filtro_data_inicio': data_inicio,
+            'filtro_data_fim': data_fim,
+            'filtro_apenas_nao_lidas': apenas_nao_lidas,
+        })
+        
+        print(f"[DEBUG] Contexto de notificações: user_name={context['user_name']}, cargo={context['user_cargo']}, foto={context['fotoPerfil']}")
         
         return context
+    
+    def post(self, request, *args, **kwargs):
+        """🔨 Processa ações de marcar como lida/deslida"""
+        acao = request.POST.get('acao')
+        notificacao_id = request.POST.get('notificacao_id')
+        
+        try:
+            if acao == 'marcar_como_lida' and notificacao_id:
+                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
+                notificacao.lida = True
+                notificacao.save()
+                messages.success(request, 'Notificação marcada como lida!')
+                
+            elif acao == 'marcar_como_nao_lida' and notificacao_id:
+                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
+                notificacao.lida = False
+                notificacao.save()
+                messages.success(request, 'Notificação marcada como não lida!')
+                
+            elif acao == 'marcar_todas_como_lidas':
+                NotificacaoAdmin.objects.filter(lida=False).update(lida=True)
+                messages.success(request, 'Todas as notificações foram marcadas como lidas!')
+                
+            elif acao == 'marcar_todas_como_nao_lidas':
+                NotificacaoAdmin.objects.filter(lida=True).update(lida=False)
+                messages.success(request, 'Todas as notificações foram marcadas como não lidas!')
+                
+            elif acao == 'excluir' and notificacao_id:
+                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
+                notificacao.delete()
+                messages.success(request, 'Notificação excluída com sucesso!')
+                
+        except Exception as e:
+            messages.error(request, f'Erro ao processar ação: {str(e)}')
+        
+        # Redirecionar de volta para a mesma página com os filtros mantidos
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/notificacoes/'))
+    
+    def get_numeros_vagas_em_lote(self, notificacoes):
+        """Busca todos os números das vagas em uma única operação"""
+        from firebase.firebase_singleton import initialize_firebase_once
+        from firebase_admin import firestore
+        
+        # Coletar todos os vaga_ids únicos
+        vaga_ids = set()
+        for notificacao in notificacoes:
+            if notificacao.vaga_id:
+                vaga_ids.add(notificacao.vaga_id)
+        
+        if not vaga_ids:
+            return {}
+        
+        try:
+            initialize_firebase_once()
+            db = firestore.client()
+            
+            numeros_vagas = {}
+            
+            # Buscar todas as vagas de uma vez
+            for vaga_id in vaga_ids:
+                vaga_doc = db.collection('vaga').document(vaga_id).get()
+                
+                if vaga_doc.exists:
+                    vaga_data = vaga_doc.to_dict()
+                    numero = (vaga_data.get('numero') or 
+                             vaga_data.get('nome') or 
+                             vaga_data.get('vagaNumero') or
+                             vaga_data.get('numeroVaga'))
+                    numeros_vagas[vaga_id] = numero or vaga_id
+                else:
+                    numeros_vagas[vaga_id] = vaga_id
+            
+            return numeros_vagas
+                
+        except Exception as e:
+            print(f"Erro ao buscar vagas em lote: {e}")
+            return {vaga_id: vaga_id for vaga_id in vaga_ids}
 
 class NotificacoesAPIView(LoginRequiredMixin, View):
     def get(self, request):
@@ -383,308 +540,113 @@ class NotificacoesAPIView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': str(e)})
 
 
-class SincronizarNotificacoesView(LoginRequiredMixin, View):
-    """View para sincronizar notificações - VERSÃO CORRIGIDA"""
-    
-    def post(self, request):
-        try:
-            print("🔄 INICIANDO SINCRONIZAÇÃO CORRIGIDA...")
-            
-            # Inicializar Firebase
-            if not firebase_admin._apps:
-                cred = credentials.Certificate('firebase/firebase-key.json')
-                firebase_admin.initialize_app(cred)
-            
-            db = firestore.client()
-            
-            # Buscar notificações do Firestore
-            notificacoes_ref = db.collection('notificacoes_admin')
-            notificacoes_firebase = notificacoes_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(50).get()
-            
-            print(f"📦 Encontradas {len(notificacoes_firebase)} notificações no Firestore")
-            
-            notificacoes_sincronizadas = 0
-            notificacoes_atualizadas = 0
-            
-            for doc in notificacoes_firebase:
-                data = doc.to_dict()
-                
-                # 🔥 CORREÇÃO: Mapear campos corretamente
-                vaga_id = data.get('vagaId') or data.get('vaga_id') or ''
-                placa = data.get('placa') or ''
-                motivo = data.get('motivo') or 'Não especificado'
-                
-                # Converter timestamp
-                timestamp_firestore = data.get('timestamp')
-                if timestamp_firestore:
-                    timestamp_django = timestamp_firestore.replace(tzinfo=timezone.utc)
-                else:
-                    timestamp_django = timezone.now()
-                
-                # 🔥 CORREÇÃO: Buscar por ID do documento Firestore
-                firestore_id = doc.id
-                
-                # Verificar se já existe (usando ID do Firestore como referência)
-                notificacao_existente = NotificacaoAdmin.objects.filter(
-                    dados_adicionais__has_key='firestore_id',
-                    dados_adicionais__firestore_id=firestore_id
-                ).first()
-                
-                if notificacao_existente:
-                    # Atualizar existente
-                    notificacao_existente.vaga_id = vaga_id
-                    notificacao_existente.placa = placa
-                    notificacao_existente.motivo = motivo
-                    notificacao_existente.timestamp = timestamp_django
-                    notificacao_existente.tipo = data.get('tipo', 'sistema_alerta_estacionamento')
-                    notificacao_existente.estacionamento_id = data.get('estacionamentoId')
-                    notificacao_existente.vaga_numero = data.get('vagaNumero')
-                    
-                    # Atualizar dados adicionais
-                    dados_atuais = notificacao_existente.dados_adicionais
-                    dados_atuais.update(data)
-                    dados_atuais['firestore_id'] = firestore_id
-                    notificacao_existente.dados_adicionais = dados_atuais
-                    
-                    notificacao_existente.save()
-                    notificacoes_atualizadas += 1
-                    print(f"   🔄 ATUALIZADA: {placa} - {vaga_id}")
-                    
-                else:
-                    # Criar nova notificação
-                    dados_adicionais = data.copy()
-                    dados_adicionais['firestore_id'] = firestore_id
-                    
-                    NotificacaoAdmin.objects.create(
-                        vaga_id=vaga_id,
-                        placa=placa,
-                        usuario_id=data.get('usuarioId', ''),
-                        motivo=motivo,
-                        timestamp=timestamp_django,
-                        tipo=data.get('tipo', 'sistema_alerta_estacionamento'),
-                        estacionamento_id=data.get('estacionamentoId'),
-                        vaga_numero=data.get('vagaNumero'),
-                        dados_adicionais=dados_adicionais
-                    )
-                    notificacoes_sincronizadas += 1
-                    print(f"   ✅ NOVA: {placa} - {vaga_id}")
-            
-            # Contar totais
-            total_django = NotificacaoAdmin.objects.count()
-            
-            print("📊 RESUMO DA SINCRONIZAÇÃO:")
-            print(f"   ✅ Novas sincronizadas: {notificacoes_sincronizadas}")
-            print(f"   🔄 Atualizadas: {notificacoes_atualizadas}")
-            print(f"   📋 Total no Django: {total_django}")
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Sincronização concluída! {notificacoes_sincronizadas} novas, {notificacoes_atualizadas} atualizadas.',
-                'sincronizadas': notificacoes_sincronizadas,
-                'atualizadas': notificacoes_atualizadas,
-                'total_django': total_django
-            })
-            
-        except Exception as e:
-            print(f"❌ ERRO NA SINCRONIZAÇÃO: {e}")
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({
-                'success': False, 
-                'error': f'Erro: {str(e)}'
-            })
-
-
-class SincronizacaoAgressivaView(LoginRequiredMixin, View):
-    """Sincronização que limpa e recria TUDO"""
-    
-    def post(self, request):
-        try:
-            print("💥 SINCRONIZAÇÃO AGRESSIVA - RECRIANDO TUDO...")
-            
-            # Inicializar Firebase
-            if not firebase_admin._apps:
-                cred = credentials.Certificate('firebase/serviceAccountKey.json')
-                firebase_admin.initialize_app(cred)
-            
-            db = firestore.client()
-            
-            # Buscar todas as notificações do Firestore
-            notificacoes_firebase = db.collection('notificacoes_admin').get()
-            
-            print(f"📦 Encontradas {len(notificacoes_firebase)} notificações no Firestore")
-            
-            # 🔥 LIMPAR TUDO primeiro
-            NotificacaoAdmin.objects.all().delete()
-            print("🧹 Todas as notificações locais foram removidas")
-            
-            # Recriar todas do Firestore
-            criadas = 0
-            for doc in notificacoes_firebase:
-                data = doc.to_dict()
-                
-                # Converter timestamp
-                timestamp_firestore = data.get('timestamp')
-                if timestamp_firestore:
-                    timestamp_django = timestamp_firestore.replace(tzinfo=timezone.utc)
-                else:
-                    timestamp_django = timezone.now()
-                
-                # Preparar dados adicionais
-                dados_adicionais = data.copy()
-                dados_adicionais['firestore_id'] = doc.id
-                
-                # Criar notificação
-                NotificacaoAdmin.objects.create(
-                    vaga_id=data.get('vagaId') or data.get('vaga_id') or '',
-                    placa=data.get('placa') or '',
-                    usuario_id=data.get('usuarioId', ''),
-                    motivo=data.get('motivo', 'Não especificado'),
-                    timestamp=timestamp_django,
-                    tipo=data.get('tipo', 'sistema_alerta_estacionamento'),
-                    estacionamento_id=data.get('estacionamentoId'),
-                    vaga_numero=data.get('vagaNumero'),
-                    dados_adicionais=dados_adicionais
-                )
-                criadas += 1
-            
-            print(f"✅ {criadas} notificações recriadas do Firestore")
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Sincronização agressiva concluída! {criadas} notificações recriadas.',
-                'criadas': criadas
-            })
-            
-        except Exception as e:
-            print(f"❌ Erro na sincronização agressiva: {e}")
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({'success': False, 'error': str(e)})
-
-
-class DebugNotificacoesView(View):
-    """View para debug das notificações"""
-    
-    @method_decorator(login_required(login_url='/login/'))
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+class NotificacoesCheckNewView(LoginRequiredMixin, View):
+    """API rápida para verificar novas notificações"""
     
     def get(self, request):
         try:
-            print("🔍 Iniciando debug das notificações...")
+            # Obter timestamp da última verificação do cliente
+            last_check_str = request.GET.get('last_check')
+            last_check = None
             
-            # Notificações no Django
-            notificacoes_django = NotificacaoAdmin.objects.all()
-            print(f"📊 Django: {notificacoes_django.count()} notificações")
+            if last_check_str:
+                try:
+                    last_check = datetime.fromisoformat(last_check_str.replace('Z', '+00:00'))
+                except ValueError:
+                    pass
             
-            dados_django = []
-            for notif in notificacoes_django:
-                dados_django.append({
+            # Contagem total de não lidas
+            nao_lidas_count = NotificacaoAdmin.objects.filter(lida=False).count()
+            
+            # Buscar notificações novas (últimos 5 minutos ou desde última verificação)
+            if last_check:
+                novas_notificacoes = NotificacaoAdmin.objects.filter(
+                    lida=False,
+                    timestamp__gt=last_check
+                ).order_by('-timestamp')[:10]
+            else:
+                # Se não tem última verificação, pegar das últimas 2 horas
+                duas_horas_atras = timezone.now() - timezone.timedelta(hours=2)
+                novas_notificacoes = NotificacaoAdmin.objects.filter(
+                    lida=False,
+                    timestamp__gt=duas_horas_atras
+                ).order_by('-timestamp')[:10]
+            
+            # Serializar notificações novas
+            novas_data = []
+            for notif in novas_notificacoes:
+                novas_data.append({
                     'id': notif.id,
-                    'vaga_id': notif.vaga_id,
+                    'motivo': notif.motivo,
                     'placa': notif.placa,
-                    'timestamp': notif.timestamp.isoformat() if notif.timestamp else None,
+                    'vaga_numero': notif.vaga_numero,
+                    'timestamp': notif.timestamp.strftime('%H:%M'),
+                    'tipo': notif.get_tipo_display()
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'nao_lidas': nao_lidas_count,
+                'novas': novas_data,
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+
+
+
+class NotificacoesAtualizacaoView(LoginRequiredMixin, View):
+    """API para atualização parcial das notificações"""
+    
+    def get(self, request):
+        try:
+            # Parâmetros
+            ultima_atualizacao = request.GET.get('ultima_atualizacao')
+            limite = int(request.GET.get('limit', 20))
+            
+            # Query base
+            notificacoes_query = NotificacaoAdmin.objects.all()
+            
+            # Filtrar por data se fornecida
+            if ultima_atualizacao:
+                try:
+                    from datetime import datetime
+                    ultima_dt = datetime.fromisoformat(ultima_atualizacao.replace('Z', '+00:00'))
+                    notificacoes_query = notificacoes_query.filter(timestamp__gt=ultima_dt)
+                except ValueError:
+                    pass
+            
+            notificacoes = notificacoes_query.order_by('-timestamp')[:limite]
+            
+            # Serializar
+            notificacoes_data = []
+            for notif in notificacoes:
+                notificacoes_data.append({
+                    'id': notif.id,
+                    'motivo': notif.motivo,
+                    'placa': notif.placa,
+                    'vaga_numero': notif.vaga_numero,
+                    'timestamp': notif.timestamp.isoformat(),
+                    'tipo': notif.tipo,
+                    'tipo_display': notif.get_tipo_display(),
                     'lida': notif.lida,
-                    'motivo': notif.motivo
-                })
-            
-            # Notificações no Firestore
-            dados_firestore = []
-            try:
-                if not firebase_admin._apps:
-                    cred = credentials.Certificate('firebase/serviceAccountKey.json')
-                    firebase_admin.initialize_app(cred)
-                
-                db = firestore.client()
-                notificacoes_firestore = db.collection('notificacoes_admin').limit(50).get()
-                
-                print(f"📊 Firestore: {len(notificacoes_firestore)} notificações")
-                
-                for doc in notificacoes_firestore:
-                    data = doc.to_dict()
-                    timestamp = data.get('timestamp')
-                    dados_firestore.append({
-                        'id': doc.id,
-                        'vagaId': data.get('vagaId'),
-                        'placa': data.get('placa'),
-                        'timestamp': timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp),
-                        'motivo': data.get('motivo', 'Não especificado'),
-                        'usuarioId': data.get('usuarioId'),
-                        'tipo': data.get('tipo')
-                    })
-                    
-            except Exception as e:
-                print(f"❌ Erro ao buscar do Firestore: {e}")
-                dados_firestore = {'error': str(e)}
-            
-            response_data = {
-                'django': {
-                    'total': len(dados_django),
-                    'dados': dados_django
-                },
-                'firestore': {
-                    'total': len(dados_firestore) if isinstance(dados_firestore, list) else 0,
-                    'dados': dados_firestore
-                },
-                'user': {
-                    'username': request.user.username,
-                    'is_authenticated': request.user.is_authenticated
-                }
-            }
-            
-            print("✅ Debug concluído")
-            return JsonResponse(response_data)
-            
-        except Exception as e:
-            print(f"❌ Erro no debug: {e}")
-            return JsonResponse({'error': str(e)})     
-
-    
-    def get(self, request):
-        try:
-            # Notificações no Django
-            notificacoes_django = NotificacaoAdmin.objects.all()
-            
-            # Notificações no Firestore
-            if not firebase_admin._apps:
-                cred = credentials.Certificate('firebase/firebase-key.json')
-                firebase_admin.initialize_app(cred)
-            
-            db = firestore.client()
-            notificacoes_firestore = db.collection('notificacoes_admin').get()
-            
-            dados_django = []
-            for notif in notificacoes_django:
-                dados_django.append({
-                    'id': notif.id,
-                    'vaga_id': notif.vaga_id,
-                    'placa': notif.placa,
-                    'timestamp': notif.timestamp,
-                    'lida': notif.lida
-                })
-            
-            dados_firestore = []
-            for doc in notificacoes_firestore:
-                data = doc.to_dict()
-                dados_firestore.append({
-                    'id': doc.id,
-                    'vagaId': data.get('vagaId'),
-                    'placa': data.get('placa'),
-                    'timestamp': data.get('timestamp'),
-                    'motivo': data.get('motivo')
+                    'nova': notif.timestamp > timezone.now() - timezone.timedelta(minutes=5)
                 })
             
             return JsonResponse({
-                'django': {
-                    'total': len(dados_django),
-                    'dados': dados_django
-                },
-                'firestore': {
-                    'total': len(dados_firestore),
-                    'dados': dados_firestore
-                }
+                'success': True,
+                'notificacoes': notificacoes_data,
+                'total': NotificacaoAdmin.objects.count(),
+                'nao_lidas': NotificacaoAdmin.objects.filter(lida=False).count(),
+                'ultima_atualizacao': timezone.now().isoformat()
             })
             
         except Exception as e:
-            return JsonResponse({'error': str(e)})
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })

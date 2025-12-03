@@ -1,47 +1,312 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Vallet</title>
+    {% block extra_head %}
+    {% endblock %}
     <link rel="stylesheet" href="{% static 'admin.css' %}">
     <link rel="icon" type="image/png" href="{% static 'assets/VALLET (2).png' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-</head>
-<body>
-    <div class="dashboard">
-
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="avatar">
-                    {% if fotoPerfil %}
-                        <img src="{{ fotoPerfil }}" alt="Foto de Perfil" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover;">
-                    {% else %}
-                        <i class="bi bi-person-circle" style="color: black;"></i>
-                    {% endif %}
-                </div>
-                <div class="user-info">
-                    <h3>{{ user_name }}</h3>
-                    <p>{{ user_cargo }}</p>
-                </div>
-            </div>
-            <nav class="menu">
-                <button><a href="{% url 'notificacoes_admin' %}" style="text-decoration: none;color: #046C4E;"><i class="bi bi-bell-fill"></i> Notificações </a></button>
-                <button><a href="{% url 'gestor' %}" style="text-decoration: none;color: #046C4E;"><i class="bi bi-house-door-fill"></i> Dashboard</a></button>
-                <button><i class="bi bi-car-front-fill"></i> Veículos</button>
-                <button><i class="bi bi-calendar-check-fill"></i> Reservas</button>
-                <button><i class="bi bi-wallet2"></i> Financeiro</button>
-            </nav>
-            <a href="{% url 'logout' %}" class="logout-btn"><i class="bi bi-box-arrow-right"></i> Sair</a>
     
-        </aside>
-<main class="main-content" >
-       {% block content %}
-       {% endblock %}
-        </main>
+    <title>
+        {% block tituloPagina %}{% endblock %}
+        {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
+                ({{ notificacoes_nao_lidas }})
+            {% endif %}
+    </title>
+</head>
+<body>   
+    <div class="dashboard">
+  <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="avatar">
+                {% if fotoPerfil %}
+                    <img src="{{ fotoPerfil }}" class="profile-pic">
+                {% else %}
+                    <i class="bi bi-person-circle" style="font-size: 60px; color: #046C4E;"></i>
+                {% endif %}
+            </div>
+            <h3>{{ user_name }}</h3>
+            <p>{{ user_cargo }}</p>
+        </div>
 
+        <nav class="menu">
+            <button><a href="{% url 'gestor' %}"> <i class="bi bi-house-door-fill"></i> Dashboard</a></button>
+            <button><i class="bi bi-calendar-check-fill"></i> Reservas</button>
+            <button>
+                <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on">
+                    <i class="bi bi-bell-fill"></i> Notificações
+                    {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
+                        <span class="badge bg-danger ms-1">{{ notificacoes_nao_lidas }}</span>
+                    {% endif %}
+                </a>
+            </button>
+        </nav>
+
+        <a href="{% url 'logout' %}" class="logout-btn">
+            <i class="bi bi-box-arrow-right"></i> Sair
+        </a>
+    </aside>
+
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- 🔥 CONTAINER PARA NOTIFICAÇÕES EM TEMPO REAL -->
+    <div id="notification-toast-container"></div>
     </div>
+
+
+
+    {% block extra_scripts %}
+    {% endblock %}
+    <script>
+    class GlobalNotificationSystem {
+        constructor() {
+            this.notificationCount = {{ notificacoes_nao_lidas|default:0 }};
+            this.lastCheck = new Date();
+            this.isChecking = false;
+            this.checkInterval = 5000;
+            this.intervalId = null;
+            
+            this.init();
+        }
+        
+        init() {
+            console.log('🔔 Sistema global de notificações iniciado');
+            this.startAutoCheck();
+            this.updatePageTitle();
+            this.setupServiceWorker();
+        }
+        
+        startAutoCheck() {
+            this.intervalId = setInterval(() => {
+                this.checkForNewNotifications();
+            }, this.checkInterval);
+        }
+        
+        stopAutoCheck() {
+            if (this.intervalId) {
+                clearInterval(this.intervalId);
+                this.intervalId = null;
+            }
+        }
+        
+        async checkForNewNotifications() {
+            if (this.isChecking) return;
+            
+            this.isChecking = true;
+            
+            try {
+                const response = await fetch('/notificacoes/api/check-new/', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const newCount = data.nao_lidas;
+                        const novasNotificacoes = data.novas || [];
+                        
+                        if (newCount !== this.notificationCount) {
+                            const novas = newCount - this.notificationCount;
+                            
+                            if (novas > 0) {
+                                novasNotificacoes.forEach(notif => {
+                                    this.showNotificationPopup(notif);
+                                });
+                                
+                                this.showNewNotificationsToast(novas);
+                            }
+                            
+                            this.updateNotificationCount(newCount);
+                        }
+                        
+                        this.notificationCount = newCount;
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao verificar notificações:', error);
+            } finally {
+                this.isChecking = false;
+            }
+        }
+        
+        updateNotificationCount(newCount) {
+            const globalBadge = document.getElementById('global-notification-badge');
+            const globalCount = document.getElementById('global-notification-count');
+            const navbarCount = document.getElementById('navbar-notification-count');
+            
+            if (globalBadge && globalCount) {
+                if (newCount > 0) {
+                    globalBadge.style.display = 'block';
+                    globalCount.textContent = newCount;
+                    if (navbarCount) navbarCount.textContent = newCount;
+                } else {
+                    globalBadge.style.display = 'none';
+                    if (navbarCount) navbarCount.remove();
+                }
+            }
+            
+            this.updatePageTitle(newCount);
+            window.dispatchEvent(new CustomEvent('notificationCountChanged', {
+                detail: { count: newCount }
+            }));
+        }
+        
+        updatePageTitle(count = null) {
+            const currentCount = count !== null ? count : this.notificationCount;
+            
+            // Remover contador atual do título
+            const baseTitle = document.title.replace(/\s*\(\d+\)$/, '');
+            
+            if (currentCount > 0) {
+                document.title = `${baseTitle} (${currentCount})`;
+            } else {
+                document.title = baseTitle;
+            }
+        }
+        
+        showNotificationPopup(notificacao) {
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast alert alert-warning alert-dismissible fade show';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h6 class="alert-heading mb-1">
+                            <i class="bi bi-bell-fill me-2"></i>Nova Notificação
+                        </h6>
+                        <p class="mb-1 small">${notificacao.motivo}</p>
+                        <div class="text-muted small">
+                            <i class="bi bi-clock me-1"></i>${notificacao.timestamp}
+                            ${notificacao.placa ? `<span class="ms-2"><i class="bi bi-car-front me-1"></i>${notificacao.placa}</span>` : ''}
+                            ${notificacao.vaga_numero ? `<span class="ms-2"><i class="bi bi-p-square me-1"></i>${notificacao.vaga_numero}</span>` : ''}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            const container = document.getElementById('notification-toast-container') || this.createToastContainer();
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 8000);
+            
+            this.playNotificationSound();
+        }
+        
+        showNewNotificationsToast(quantidade) {
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast alert alert-info alert-dismissible fade show';
+            toast.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-bell-fill me-2 fs-5"></i>
+                    <div class="flex-grow-1">
+                        <strong>${quantidade} nova(s) notificação(ões)</strong>
+                        <div class="small">Clique para ver detalhes</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            toast.style.cursor = 'pointer';
+            toast.addEventListener('click', () => {
+                window.location.href = '{% url "notificacoes_admin" %}';
+            });
+            
+            const container = document.getElementById('notification-toast-container') || this.createToastContainer();
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+        
+        createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'notification-toast-container';
+            container.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+            `;
+            document.body.appendChild(container);
+            return container;
+        }
+        
+        playNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.1);
+                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (e) {
+                console.log('Audio não suportado');
+            }
+        }
+        
+        setupServiceWorker() {
+            if ('serviceWorker' in navigator && 'Notification' in window) {
+                navigator.serviceWorker.register('/sw.js').then(() => {
+                    console.log('Service Worker registrado');
+                }).catch(() => {
+                    console.log('Service Worker não suportado');
+                });
+            }
+        }
+        
+        forceCheck() {
+            this.checkForNewNotifications();
+        }
+        
+        destroy() {
+            this.stopAutoCheck();
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        window.globalNotifications = new GlobalNotificationSystem();
+        window.updateNotifications = function() {
+            if (window.globalNotifications) {
+                window.globalNotifications.forceCheck();
+            }
+        };
+        setInterval(() => {
+            if (window.globalNotifications) {
+                window.globalNotifications.forceCheck();
+            }
+        }, 30000);
+    });
+    </script>
 </body>
 </html>
