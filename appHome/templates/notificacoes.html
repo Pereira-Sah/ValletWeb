@@ -177,7 +177,7 @@
                         {% if item.obj.usuario_id %}
                         <div class="detalhe-item">
                             <i class="bi bi-person"></i>
-                            <span>Usuário: {{ item.obj.usuario_id|truncatechars:12 }}</span>
+                            <span>Usuário: {{ item.nome_usuario }}</span>
                         </div>
                         {% endif %}
                     </div>
@@ -208,29 +208,4 @@
         {% endif %}
     </div>
 </div>
-
-<script>
-// Scripts simples
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-focus no campo de busca
-    const placaInput = document.getElementById('placa');
-    if (placaInput && !placaInput.value) {
-        placaInput.focus();
-    }
-    
-    // Atualizar título da página com contador
-    function atualizarTitulo() {
-        const naoLidas = {{ notificacoes_nao_lidas|default:0 }};
-        const baseTitle = "Notificações";
-        
-        if (naoLidas > 0) {
-            document.title = `(${naoLidas}) ${baseTitle}`;
-        } else {
-            document.title = baseTitle;
-        }
-    }
-    
-    atualizarTitulo();
-});
-</script>
 {% endblock %}

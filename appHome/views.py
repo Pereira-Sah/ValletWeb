@@ -295,9 +295,53 @@ from firebase_admin import firestore
 import firebase_admin
 from firebase_admin import credentials
 from datetime import datetime
+from django.views import View
+from django.shortcuts import render, redirect
 
-class NotificacoesAdminView(LoginRequiredMixin, TemplateView):
+class NotificacoesAdminView(LoginRequiredMixin, View):  # Mude de TemplateView para View
     template_name = 'notificacoes.html'
+    
+    def get(self, request, *args, **kwargs):
+        """🔧 Processa requisições GET"""
+        context = self.get_context_data()
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        """🔧 Processa requisições POST (marcar como lida/deslida)"""
+        acao = request.POST.get('acao')
+        notificacao_id = request.POST.get('notificacao_id')
+        
+        try:
+            if acao == 'marcar_como_lida' and notificacao_id:
+                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
+                notificacao.lida = True
+                notificacao.save()
+                messages.success(request, 'Notificação marcada como lida!')
+                
+            elif acao == 'marcar_como_nao_lida' and notificacao_id:
+                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
+                notificacao.lida = False
+                notificacao.save()
+                messages.success(request, 'Notificação marcada como não lida!')
+                
+            elif acao == 'marcar_todas_como_lidas':
+                NotificacaoAdmin.objects.filter(lida=False).update(lida=True)
+                messages.success(request, 'Todas as notificações foram marcadas como lidas!')
+                
+            elif acao == 'marcar_todas_como_nao_lidas':
+                NotificacaoAdmin.objects.filter(lida=True).update(lida=False)
+                messages.success(request, 'Todas as notificações foram marcadas como não lidas!')
+                
+            elif acao == 'excluir' and notificacao_id:
+                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
+                notificacao.delete()
+                messages.success(request, 'Notificação excluída com sucesso!')
+                
+        except Exception as e:
+            messages.error(request, f'Erro ao processar ação: {str(e)}')
+        
+        # Redirecionar de volta para a mesma página com os filtros mantidos
+        return redirect(request.META.get('HTTP_REFERER', '/notificacoes/'))
     
     def get_template_names(self):
         # 🔥 SE FOR REQUISIÇÃO AJAX, RETORNAR APENAS O PARTIAL
@@ -306,7 +350,7 @@ class NotificacoesAdminView(LoginRequiredMixin, TemplateView):
         return [self.template_name]
     
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = {}
         
         # 🔥 ADICIONAR INFORMAÇÕES DO USUÁRIO LOGADO À SESSÃO
         context.update({
@@ -356,23 +400,15 @@ class NotificacoesAdminView(LoginRequiredMixin, TemplateView):
         # Ordenar e limitar
         notificacoes = notificacoes_query.order_by('-timestamp')[:100]
         
-        # Buscar todos os números das vagas de uma vez
-        numeros_vagas = self.get_numeros_vagas_em_lote(notificacoes)
-        
-        notificacoes_com_vaga = []
-        for notificacao in notificacoes:
-            numero_vaga = numeros_vagas.get(notificacao.vaga_id, notificacao.vaga_id)
-            notificacoes_com_vaga.append({
-                'obj': notificacao,
-                'numero_vaga': numero_vaga
-            })
+        # Buscar todos os números das vagas e nomes de usuários de uma vez
+        notificacoes_com_info = self.get_notificacoes_com_info(notificacoes)
         
         # 🔥 CONTAGENS
         total_notificacoes = NotificacaoAdmin.objects.count()
         notificacoes_nao_lidas = NotificacaoAdmin.objects.filter(lida=False).count()
         
         context.update({
-            'notificacoes_com_vaga': notificacoes_com_vaga,
+            'notificacoes_com_vaga': notificacoes_com_info,
             'notificacoes_nao_lidas': notificacoes_nao_lidas,
             'total_notificacoes': total_notificacoes,
             'tipos_notificacao': NotificacaoAdmin.TIPOS_NOTIFICACAO,
@@ -385,87 +421,83 @@ class NotificacoesAdminView(LoginRequiredMixin, TemplateView):
             'filtro_apenas_nao_lidas': apenas_nao_lidas,
         })
         
-        print(f"[DEBUG] Contexto de notificações: user_name={context['user_name']}, cargo={context['user_cargo']}, foto={context['fotoPerfil']}")
-        
         return context
     
-    def post(self, request, *args, **kwargs):
-        """🔨 Processa ações de marcar como lida/deslida"""
-        acao = request.POST.get('acao')
-        notificacao_id = request.POST.get('notificacao_id')
-        
-        try:
-            if acao == 'marcar_como_lida' and notificacao_id:
-                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
-                notificacao.lida = True
-                notificacao.save()
-                messages.success(request, 'Notificação marcada como lida!')
-                
-            elif acao == 'marcar_como_nao_lida' and notificacao_id:
-                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
-                notificacao.lida = False
-                notificacao.save()
-                messages.success(request, 'Notificação marcada como não lida!')
-                
-            elif acao == 'marcar_todas_como_lidas':
-                NotificacaoAdmin.objects.filter(lida=False).update(lida=True)
-                messages.success(request, 'Todas as notificações foram marcadas como lidas!')
-                
-            elif acao == 'marcar_todas_como_nao_lidas':
-                NotificacaoAdmin.objects.filter(lida=True).update(lida=False)
-                messages.success(request, 'Todas as notificações foram marcadas como não lidas!')
-                
-            elif acao == 'excluir' and notificacao_id:
-                notificacao = NotificacaoAdmin.objects.get(id=notificacao_id)
-                notificacao.delete()
-                messages.success(request, 'Notificação excluída com sucesso!')
-                
-        except Exception as e:
-            messages.error(request, f'Erro ao processar ação: {str(e)}')
-        
-        # Redirecionar de volta para a mesma página com os filtros mantidos
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/notificacoes/'))
-    
-    def get_numeros_vagas_em_lote(self, notificacoes):
-        """Busca todos os números das vagas em uma única operação"""
+    def get_notificacoes_com_info(self, notificacoes):
+        """Busca informações adicionais para todas as notificações (nomes de usuários e vagas)"""
         from firebase.firebase_singleton import initialize_firebase_once
         from firebase_admin import firestore
         
-        # Coletar todos os vaga_ids únicos
+        # Coletar todos os IDs únicos
+        usuario_ids = set()
         vaga_ids = set()
+        
         for notificacao in notificacoes:
+            if notificacao.usuario_id:
+                usuario_ids.add(notificacao.usuario_id)
             if notificacao.vaga_id:
                 vaga_ids.add(notificacao.vaga_id)
         
-        if not vaga_ids:
-            return {}
-        
+        # 🔥 Inicializar Firebase se necessário
         try:
             initialize_firebase_once()
             db = firestore.client()
             
+            # Buscar nomes dos usuários
+            nomes_usuarios = {}
+            for usuario_id in usuario_ids:
+                try:
+                    usuario_doc = db.collection('usuario').document(usuario_id).get()
+                    if usuario_doc.exists:
+                        usuario_data = usuario_doc.to_dict()
+                        nome = usuario_data.get('nome') or usuario_data.get('displayName') or usuario_id
+                        # Limitar tamanho do nome para exibição
+                        if len(nome) > 20:
+                            nome = f"{nome[:17]}..."
+                        nomes_usuarios[usuario_id] = nome
+                    else:
+                        nomes_usuarios[usuario_id] = usuario_id
+                except Exception:
+                    nomes_usuarios[usuario_id] = usuario_id
+            
+            # Buscar números das vagas
             numeros_vagas = {}
-            
-            # Buscar todas as vagas de uma vez
             for vaga_id in vaga_ids:
-                vaga_doc = db.collection('vaga').document(vaga_id).get()
-                
-                if vaga_doc.exists:
-                    vaga_data = vaga_doc.to_dict()
-                    numero = (vaga_data.get('numero') or 
-                             vaga_data.get('nome') or 
-                             vaga_data.get('vagaNumero') or
-                             vaga_data.get('numeroVaga'))
-                    numeros_vagas[vaga_id] = numero or vaga_id
-                else:
+                try:
+                    vaga_doc = db.collection('vaga').document(vaga_id).get()
+                    if vaga_doc.exists:
+                        vaga_data = vaga_doc.to_dict()
+                        numero = (vaga_data.get('numero') or 
+                                 vaga_data.get('nome') or 
+                                 vaga_data.get('vagaNumero') or
+                                 vaga_data.get('numeroVaga'))
+                        numeros_vagas[vaga_id] = numero or vaga_id
+                    else:
+                        numeros_vagas[vaga_id] = vaga_id
+                except Exception:
                     numeros_vagas[vaga_id] = vaga_id
-            
-            return numeros_vagas
-                
+                    
         except Exception as e:
-            print(f"Erro ao buscar vagas em lote: {e}")
-            return {vaga_id: vaga_id for vaga_id in vaga_ids}
-
+            print(f"Erro ao buscar informações do Firebase: {e}")
+            # Se houver erro, usar valores padrão
+            nomes_usuarios = {uid: uid for uid in usuario_ids}
+            numeros_vagas = {vid: vid for vid in vaga_ids}
+        
+        # Criar lista final com todas as informações
+        notificacoes_com_info = []
+        for notificacao in notificacoes:
+            nome_usuario = nomes_usuarios.get(notificacao.usuario_id, notificacao.usuario_id)
+            numero_vaga = numeros_vagas.get(notificacao.vaga_id, notificacao.vaga_id)
+            
+            notificacoes_com_info.append({
+                'obj': notificacao,
+                'numero_vaga': numero_vaga,
+                'nome_usuario': nome_usuario  # 🔥 Adicionado nome do usuário
+            })
+        
+        return notificacoes_com_info
+    
+    
 class NotificacoesAPIView(LoginRequiredMixin, View):
     def get(self, request):
         # Parâmetros para paginação e filtros
