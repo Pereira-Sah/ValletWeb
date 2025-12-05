@@ -25,25 +25,40 @@ body {
 /* ================= SIDEBAR ================= */
 
 .sidebar {
-    background: var(--verde-escuro);
     width: 250px;
-    padding: 30px 20px;
-    color: white;
+    background: #ffffff;
+    padding: 32px 18px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    border-right: 1px solid #e6e6e6;
+    box-shadow: 4px 0 18px rgba(0,0,0,0.06);
 }
 
-.sidebar-header { text-align: center; }
+.sidebar-header {
+    text-align: center;
+    color: var(--verde-escuro);
+}
+
+.sidebar-header h3 {
+    margin-top: 10px;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.sidebar-header p {
+    margin-top: -4px;
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
 
 .avatar {
     width: 85px;
     height: 85px;
-    background: white;
     border-radius: 50%;
     overflow: hidden;
-    margin: 0 auto 15px auto;
+    margin: 0 auto;
+    border: 3px solid var(--verde-medio);
 }
 
 .profile-pic {
@@ -52,49 +67,96 @@ body {
     object-fit: cover;
 }
 
+
+.menu {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .menu button {
+    all: unset;
+    display: block;
     width: 100%;
-    padding: 14px;
-    margin: 10px 0;
-    border: none;
-    border-radius: 10px;
-    background: white;
-    color: var(--verde-escuro);
-    font-weight: 600;
-    cursor: pointer;
+}
+
+.menu a {
+    width: 100%;
     display: flex;
     align-items: center;
-    gap: 10px;
-    transition: 0.2s;
+    gap: 12px;
+    padding: 14px 18px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    border-radius: 12px;
+    position: relative;
+    background: #f8f9f9;
+    border: 1px solid #e6e6e6;
+    transition: all .25s ease;
 }
 
-.menu a{
-    text-decoration:none;
+.menu a::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0);
+    width: 4px;
+    height: 70%;
+    background: var(--verde-medio);
+    border-radius: 4px;
+    transition: transform .25s ease;
+    transform-origin: center;
+}
+
+.menu i {
+    font-size: 1.2rem;
+    color: var(--verde-escuro);
+    transition: 0.25s ease;
+}
+
+.menu a:hover {
+    background: #eefcf7;
+    border-color: var(--verde-medio);
     color: var(--verde-escuro);
 }
 
-.menu button:hover , .menu a:hover {
-    background: #F5F5F5 ;
+.menu a:hover i {
+    color: var(--verde-medio);
+}
+
+.menu a:hover::before {
+    transform: translateY(-50%) scaleY(1);
 }
 
 .menu .badge {
-    background: #e63946;
-    color: white;
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: auto;
-}
-.menu button:hover { background: var(--fundo); }
-
-.logout-btn {
-    padding: 12px;
     background: #D32F2F;
     color: white;
-    border-radius: 10px;
-    text-align: center;
-    text-decoration: none;
+    font-size: 12px;
+    padding: 3px 7px;
+    border-radius: 12px;
+    margin-left: auto;
 }
+
+.logout-btn {
+    margin-top: 20px;
+    background: #ffffff;
+    color: #D32F2F;
+    border: 1px solid #D32F2F;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 600;
+    transition: .25s ease;
+}
+
+.logout-btn:hover {
+    background: #D32F2F;
+    color: white;
+}
+
 
 /* ================= MAIN ================= */
 
