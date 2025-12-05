@@ -2,3 +2,6 @@ AmbienteVirtual/
 
 __pycache__/
 *.pyc
+
+# Banco local Django
+db.sqlite3

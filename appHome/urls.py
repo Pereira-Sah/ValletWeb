@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/notificacoes/', NotificacoesAPIView.as_view(), name='api_notificacoes'),
     path('api/notificacoes/atualizacao/', NotificacoesAPIView.as_view(), name='notificacoes_atualizacao'),
     path('notificacoes/api/check-new/', NotificacoesCheckNewView.as_view(), name='notificacoes_check_new'),
+    path('reservas/', views.reservas, name="reservas"),
 ]

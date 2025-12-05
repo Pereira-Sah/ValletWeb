@@ -1,0 +1,250 @@
+:root {
+    --verde-escuro: #046C4E;
+    --verde-medio: #00A676;
+    --fundo: #F5F5F5;
+    --texto: #121212;
+}
+
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: var(--fundo);
+}
+
+/* Container geral */
+.reservas-container {
+  padding: 24px;
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Cabeçalho */
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--verde-escuro);
+}
+
+/* FILTROS */
+.filtros-box {
+  background: #ffffff;
+  border: 1px solid #00A676;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.filtro-item label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #046C4E;
+  margin-bottom: 6px;
+}
+
+.filtro-item input,
+.filtro-item select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #00A676;
+  border-radius: 8px;
+  background: #f9fafc;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+.filtro-item input:focus,
+.filtro-item select:focus {
+  border-color: #046C4E;
+  outline: none;
+  background: #fff;
+}
+
+.filtros-botoes {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+}
+
+.filtros-botoes .btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  background: #00A676;
+  color: #fff;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: #046C4E;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #00A676;
+  color: #00A676;
+}
+
+.btn-secondary:hover {
+  background: #dcf7ef;
+}
+
+/* GRID DE RESERVAS */
+.reservas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+/* CARD */
+.reserva-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border: 1px solid #b1f8e4;
+}
+
+.reserva-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+/* TOPO DO CARD */
+.reserva-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.foto-motorista {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ecf0f1;
+}
+
+.info-basica{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+}
+
+.info-basica h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #046C4E;
+}
+
+.info-basica .sub {
+  font-size: .9rem;
+  color: #7f8c8d;
+}
+
+.status {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: .85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-ativa      { background:#d4edda; color:#00A676; }
+.status-cancelada  { background:#f8d7da; color:#721c24; }
+.status-concluida  { background:#d1ecf1; color:#046C4E; }
+.status-desconhecida { background:#eee; color:#666; }
+
+/* INFO EM BLOCOS */
+.reserva-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.info-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f9fafc;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.info-block .label {
+  font-size: .8rem;
+  color: #00A676;
+  display: block;
+margin-bottom: 4px;
+}
+
+.info-block strong {
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.info-block i {
+  font-size: 1.2rem;
+  color: #00A676;
+  margin-top: 4px;
+}
+
+/* FOOTER */
+.reserva-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-whats {
+  background: #00A676;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-whats:hover {
+  background: #046C4E;
+}
+
+.sem-whats {
+  color: #999;
+  font-size: .9rem;
+}
+
+/* EMPTY STATE */
+.empty {
+  text-align: center;
+  padding: 40px 10px;
+  color: #888;
+  font-size: 1rem;
+}

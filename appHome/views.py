@@ -682,3 +682,103 @@ class NotificacoesAtualizacaoView(LoginRequiredMixin, View):
                 'success': False,
                 'error': str(e)
             })
+        
+
+def reservas(request):
+    id_estacionamento = request.session.get("id_estacionamento", "")
+
+    placa_f = (request.GET.get("placa") or "").strip()
+    usuario_f = (request.GET.get("usuario") or "").strip()
+    data_inicio = (request.GET.get("data_inicio") or "").strip()
+    data_fim = (request.GET.get("data_fim") or "").strip()
+    status_f = (request.GET.get("status") or "").strip().lower()
+
+    try:
+        reservas_raw = fi.fetch_query("reserva", "estacionamentoId", "==", id_estacionamento) if id_estacionamento else []
+    except Exception:
+        reservas_raw = []
+
+    lista = []
+
+    for r in reservas_raw:
+        nome_usuario = r.get("usuarioNome") or r.get("nomeMotorista") or r.get("nomeUsuario") or r.get("nome")
+        status = (r.get("status") or "desconhecida").lower()
+        if status == "finalizada":
+            status = "concluida"
+
+        usuario_id = r.get("usuarioId")
+        foto, telefone, placa = "/static/default_profile.png", "", None
+
+        if usuario_id:
+            try:
+                u = fi.fetch_document("usuario", usuario_id)
+                foto = u.get("fotoPerfil") or "/static/default_profile.png"
+                telefone = u.get("telefone") or ""
+                if not nome_usuario:
+                    nome_usuario = u.get("nome") or u.get("usuarioNome") or u.get("nomeMotorista")
+
+                try:
+                    veiculos = fi.fetch_query("veiculo", "usuarioId", "==", usuario_id)
+                    if veiculos:
+                        v = veiculos[0] 
+                        placa = v.get("placa") or v.get("placaCarro") or v.get("carPlate")
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        inicio_dt, fim_dt = None, None
+        try:
+            inicio_dt = datetime.fromisoformat(str(r.get("inicioReserva")))
+            fim_dt = datetime.fromisoformat(str(r.get("fimReserva")))
+        except Exception:
+            pass
+
+        if placa_f and (not placa or placa_f.lower() not in placa.lower()):
+            continue
+        if usuario_f and (not nome_usuario or usuario_f.lower() not in nome_usuario.lower()):
+            continue
+        if status_f and status_f != status:
+            continue
+        if data_inicio and inicio_dt:
+            if inicio_dt.date() < datetime.strptime(data_inicio, "%Y-%m-%d").date():
+                continue
+        if data_fim and fim_dt:
+            if fim_dt.date() > datetime.strptime(data_fim, "%Y-%m-%d").date():
+                continue
+
+        numero_vaga = "—"
+        if r.get("vagaId"):
+            try:
+                v = fi.fetch_document("vaga", r["vagaId"])
+                numero_vaga = v.get("numero") or "—"
+            except Exception:
+                pass
+
+        lista.append({
+            "placa": placa,
+            "usuario": nome_usuario,
+            "telefone": telefone,
+            "foto": foto,
+            "status": status,
+            "numero_vaga": numero_vaga,
+            "inicio": inicio_dt,
+            "fim": fim_dt,
+        })
+
+    lista.sort(key=lambda x: x["inicio"] or datetime.min, reverse=True)
+
+    context = {
+        "reservas": lista,
+        "filtro_placa": placa_f,
+        "filtro_usuario": usuario_f,
+        "filtro_data_inicio": data_inicio,
+        "filtro_data_fim": data_fim,
+        "filtro_status": status_f,
+        "fotoPerfil": request.session.get("fotoPerfil", ""),
+        'user_name': request.session.get('user_name', 'Visitante'),
+        'user_cargo': request.session.get('user_cargo', 'Cargo Desconhecido'),
+    }
+    return render(request, "reservas.html", context)
+
+
