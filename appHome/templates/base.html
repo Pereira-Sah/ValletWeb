@@ -13,202 +13,54 @@
     <title>
         {% block tituloPagina %}{% endblock %}
         {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
-                ({{ notificacoes_nao_lidas }})
-            {% endif %}
+            ({{ notificacoes_nao_lidas }})
+        {% endif %}
     </title>
 </head>
 <body>   
     <div class="dashboard">
-  <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="avatar">
-                {% if fotoPerfil %}
-                    <img src="{{ fotoPerfil }}" class="profile-pic">
-                {% else %}
-                    <i class="bi bi-person-circle" style="font-size: 60px; color: #046C4E;"></i>
-                {% endif %}
-            </div>
-            <h3>{{ user_name }}</h3>
-            <p>{{ user_cargo }}</p>
-        </div>
-
-        <nav class="menu">
-            <button><a href="{% url 'gestor' %}"> <i class="bi bi-house-door-fill"></i> Dashboard</a></button>
-            <button><a href="{% url 'reservas' %}"><i class="bi bi-calendar-check-fill"></i> Reservas </a></button>
-            <button>
-                <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on">
-                    <i class="bi bi-bell-fill"></i> Notificações
-                    {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
-                        <span class="badge bg-danger ms-1">{{ notificacoes_nao_lidas }}</span>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="avatar">
+                    {% if fotoPerfil %}
+                        <img src="{{ fotoPerfil }}" class="profile-pic">
+                    {% else %}
+                        <i class="bi bi-person-circle" style="font-size: 60px; color: #046C4E;"></i>
                     {% endif %}
-                </a>
-            </button>
-        </nav>
+                </div>
+                <h3>{{ user_name }}</h3>
+                <p>{{ user_cargo }}</p>
+            </div>
 
-        <a href="{% url 'logout' %}" class="logout-btn">
-            <i class="bi bi-box-arrow-right"></i> Sair
-        </a>
-    </aside>
+            <nav class="menu">
+                <button><a href="{% url 'gestor' %}"> <i class="bi bi-house-door-fill"></i> Dashboard</a></button>
+                <button><a href="{% url 'reservas' %}"><i class="bi bi-calendar-check-fill"></i> Reservas </a></button>
+                <button>
+                    <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on">
+                        <i class="bi bi-bell-fill"></i> Notificações
+                        {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
+                            <span class="badge bg-danger ms-1" id="navbar-notification-count">{{ notificacoes_nao_lidas }}</span>
+                        {% endif %}
+                    </a>
+                </button>
+            </nav>
 
-    <!-- Conteúdo principal -->
-    <main class="main-content">
+            <a href="{% url 'logout' %}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Sair
+            </a>
+        </aside>
 
-        {% block content %}
-        {% endblock %}
-    </main>
+        <!-- Conteúdo principal -->
+        <main class="main-content">
+            {% block content %}
+            {% endblock %}
+        </main>
 
-    <div id="notification-toast-container"></div>
+        <div id="notification-toast-container"></div>
     </div>
-
-
 
     {% block extra_scripts %}
     {% endblock %}
-    <script>
-    class GlobalNotificationSystem {
-        constructor() {
-            this.notificationCount = {{ notificacoes_nao_lidas|default:0 }};
-            this.lastCheck = new Date();
-            this.isChecking = false;
-            this.checkInterval = 5000;
-            this.intervalId = null;
-            
-            this.init();
-        }
-        
-        init() {
-            console.log('🔔 Sistema global de notificações iniciado');
-            this.startAutoCheck();
-            this.updatePageTitle();
-            this.setupServiceWorker();
-        }
-        
-        startAutoCheck() {
-            this.intervalId = setInterval(() => {
-                this.checkForNewNotifications();
-            }, this.checkInterval);
-        }
-        
-        stopAutoCheck() {
-            if (this.intervalId) {
-                clearInterval(this.intervalId);
-                this.intervalId = null;
-            }
-        }
-        
-        async checkForNewNotifications() {
-            if (this.isChecking) return;
-            
-            this.isChecking = true;
-            
-            try {
-                const response = await fetch('/notificacoes/api/check-new/', {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Cache-Control': 'no-cache'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        const newCount = data.nao_lidas;
-                        const novasNotificacoes = data.novas || [];
-                        
-                        if (newCount !== this.notificationCount) {
-                            const novas = newCount - this.notificationCount;
-                            
-                            if (novas > 0) {
-                                novasNotificacoes.forEach(notif => {
-                                    this.showNotificationPopup(notif);
-                                });
-                                
-                                this.showNewNotificationsToast(novas);
-                            }
-                            
-                            this.updateNotificationCount(newCount);
-                        }
-                        
-                        this.notificationCount = newCount;
-                    }
-                }
-            } catch (error) {
-                console.error('Erro ao verificar notificações:', error);
-            } finally {
-                this.isChecking = false;
-            }
-        }
-        
-        updateNotificationCount(newCount) {
-            const globalBadge = document.getElementById('global-notification-badge');
-            const globalCount = document.getElementById('global-notification-count');
-            const navbarCount = document.getElementById('navbar-notification-count');
-            
-            if (globalBadge && globalCount) {
-                if (newCount > 0) {
-                    globalBadge.style.display = 'block';
-                    globalCount.textContent = newCount;
-                    if (navbarCount) navbarCount.textContent = newCount;
-                } else {
-                    globalBadge.style.display = 'none';
-                    if (navbarCount) navbarCount.remove();
-                }
-            }
-            
-            this.updatePageTitle(newCount);
-            window.dispatchEvent(new CustomEvent('notificationCountChanged', {
-                detail: { count: newCount }
-            }));
-        }
-        
-        updatePageTitle(count = null) {
-            const currentCount = count !== null ? count : this.notificationCount;
-            
-            // Remover contador atual do título
-            const baseTitle = document.title.replace(/\s*\(\d+\)$/, '');
-            
-            if (currentCount > 0) {
-                document.title = `${baseTitle} (${currentCount})`;
-            } else {
-                document.title = baseTitle;
-            }
-            
-        }
-        
-        setupServiceWorker() {
-            if ('serviceWorker' in navigator && 'Notification' in window) {
-                navigator.serviceWorker.register('/sw.js').then(() => {
-                    console.log('Service Worker registrado');
-                }).catch(() => {
-                    console.log('Service Worker não suportado');
-                });
-            }
-        }
-        
-        forceCheck() {
-            this.checkForNewNotifications();
-        }
-        
-        destroy() {
-            this.stopAutoCheck();
-        }
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        window.globalNotifications = new GlobalNotificationSystem();
-        window.updateNotifications = function() {
-            if (window.globalNotifications) {
-                window.globalNotifications.forceCheck();
-            }
-        };
-        setInterval(() => {
-            if (window.globalNotifications) {
-                window.globalNotifications.forceCheck();
-            }
-        }, 30000);
-    });
-    </script>
 </body>
 </html>

@@ -55,10 +55,10 @@
                     </label>
                     <select name="tipo" id="tipo" class="filtro-select">
                         <option value="">Todos os tipos</option>
-                        {% for tipo_code, tipo_name in tipos_notificacao %}
+                        {% for tipo_code in tipos_notificacao %}
                         <option value="{{ tipo_code }}" 
                             {% if filtro_tipo == tipo_code %}selected{% endif %}>
-                            {{ tipo_name }}
+                            {{ tipo_code|capfirst }}
                         </option>
                         {% endfor %}
                     </select>
@@ -72,8 +72,6 @@
                     <input type="text" name="placa" id="placa" class="filtro-input" 
                            placeholder="Digite para buscar..." 
                            value="{{ filtro_placa }}">
-
-                           
                 </div>
 
                 <!-- Data Início -->
@@ -93,61 +91,56 @@
                     <input type="date" name="data_fim" id="data_fim" 
                            class="filtro-input" value="{{ filtro_data_fim }}">
                 </div>
-
-               
             </div>
+
             <div class="filtrosButton">
                 <div class="filtro-grupo">
                     <div class="filtro-check">
                         <input type="checkbox" name="apenas_nao_lidas" 
                                id="apenas_nao_lidas" 
-                               {% if not filtro_tipo and not filtro_placa and not filtro_data_inicio and not filtro_data_fim %}checked{% elif filtro_apenas_nao_lidas %}checked{% endif %}>
+                               {% if filtro_apenas_nao_lidas %}checked{% endif %}>
                         <label for="apenas_nao_lidas">
                             Apenas não lidas
                         </label>
                     </div>
                 </div>
-            <!-- Botões -->
-            <div class="filtros-botoes">
-                <button type="submit" class="btn-filtro btn-primary">
-                    <i class="bi bi-funnel-fill"></i> Aplicar Filtros
-                </button>
-                <a href="{% url 'notificacoes_admin' %}" class="btn-filtro btn-secondary">
-                    <i class="bi bi-x-circle"></i> Limpar
-                </a>
-            </div>
+
+                <!-- Botões -->
+                <div class="filtros-botoes">
+                    <button type="submit" class="btn-filtro btn-primary">
+                        <i class="bi bi-funnel-fill"></i> Aplicar Filtros
+                    </button>
+                    <a href="{% url 'notificacoes_admin' %}" class="btn-filtro btn-secondary">
+                        <i class="bi bi-x-circle"></i> Limpar
+                    </a>
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- Lista de notificações como cartões -->
+    <!-- Lista de notificações em grid -->
     <div class="notificacoes-grid" id="lista-notificacoes">
         {% if notificacoes_com_vaga %}
             {% for item in notificacoes_com_vaga %}
-            <div class="notificacao-card {% if not item.obj.lida %}nao-lida{% else %}lida{% endif %}">
+            <div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %}" id="notif-{{ item.id }}">
                 <div class="notificacao-header">
-                    <span class="notificacao-tipo tipo-{{ item.obj.tipo }}">
-                        {{ item.obj.get_tipo_display }}
+                    <span class="notificacao-tipo tipo-{{ item.tipo }}">
+                        {{ item.tipo|upper }}
                     </span>
                     <div class="notificacao-acoes">
                         <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
                             {% csrf_token %}
-                            <input type="hidden" name="notificacao_id" value="{{ item.obj.id }}">
-                            {% if not item.obj.lida %}
-                            <input type="hidden" name="acao" value="marcar_como_lida">
+                            <input type="hidden" name="notificacao_id" value="{{ item.id }}">
+                            {% if not item.lida %}
+                            <input type="hidden" name="acao" value="marcar_lida">
                             <button type="submit" class="btn-acao btn-success" title="Marcar como lida">
                                 <i class="bi bi-check"></i>
-                            </button>
-                            {% else %}
-                            <input type="hidden" name="acao" value="marcar_como_nao_lida">
-                            <button type="submit" class="btn-acao btn-warning" title="Marcar como não lida">
-                                <i class="bi bi-x"></i>
                             </button>
                             {% endif %}
                         </form>
                         <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
                             {% csrf_token %}
-                            <input type="hidden" name="notificacao_id" value="{{ item.obj.id }}">
+                            <input type="hidden" name="notificacao_id" value="{{ item.id }}">
                             <input type="hidden" name="acao" value="excluir">
                             <button type="submit" class="btn-acao btn-danger" 
                                     onclick="return confirm('Excluir esta notificação?')"
@@ -159,27 +152,21 @@
                 </div>
                 
                 <div class="notificacao-conteudo">
-                    <h4 class="notificacao-titulo">{{ item.obj.motivo }}</h4>
+                    <h4 class="notificacao-titulo">{{ item.titulo }}</h4>
+                    <p>{{ item.mensagem }}</p>
                     
                     <div class="notificacao-detalhes">
-                        {% if item.obj.placa %}
+                        {% if item.placa != "—" %}
                         <div class="detalhe-item">
                             <i class="bi bi-car-front"></i>
-                            <span>Placa: {{ item.obj.placa }}</span>
+                            <span>Placa: {{ item.placa }}</span>
                         </div>
                         {% endif %}
                         
-                        {% if item.numero_vaga %}
+                        {% if item.vaga_numero != "—" %}
                         <div class="detalhe-item">
                             <i class="bi bi-p-square"></i>
-                            <span>Vaga: {{ item.numero_vaga }}</span>
-                        </div>
-                        {% endif %}
-                        
-                        {% if item.obj.usuario_id %}
-                        <div class="detalhe-item">
-                            <i class="bi bi-person"></i>
-                            <span>Usuário: {{ item.nome_usuario }}</span>
+                            <span>Vaga: {{ item.vaga_numero }}</span>
                         </div>
                         {% endif %}
                     </div>
@@ -188,9 +175,9 @@
                 <div class="notificacao-footer">
                     <div class="notificacao-data">
                         <i class="bi bi-clock"></i>
-                        <span>{{ item.obj.timestamp|date:"d/m/Y H:i" }}</span>
+                        <span>{{ item.data }}</span>
                     </div>
-                    {% if not item.obj.lida %}
+                    {% if not item.lida %}
                     <span class="badge bg-warning">NÃO LIDA</span>
                     {% else %}
                     <span class="badge bg-success">LIDA</span>
@@ -203,11 +190,51 @@
                 <i class="bi bi-bell-slash"></i>
                 <h4>Nenhuma notificação encontrada</h4>
                 <p>Não há notificações que correspondam aos filtros aplicados.</p>
-                <a href="{% url 'notificacoes_admin' %}" class="btn-filtro btn-primary mt-3">
-                    <i class="bi bi-arrow-clockwise"></i> Limpar filtros
-                </a>
             </div>
         {% endif %}
     </div>
 </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAmbUqB1PQPPsXHd_CwiVoDR_emoCEfLUw",
+        authDomain: "valletprojeto-ce6f6.firebaseapp.com",
+        databaseURL: "https://valletprojeto-ce6f6-default-rtdb.firebaseio.com",
+        projectId: "valletprojeto-ce6f6",
+        storageBucket: "valletprojeto-ce6f6.firebasestorage.app",
+        messagingSenderId: "871428058139",
+        appId: "1:871428058139:web:85b83f8426e183b9addcbe"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const estacionamentoId = "{{ id_estacionamento }}";
+
+    if (estacionamentoId) {
+        const q = query(
+            collection(db, "notificacao"),
+            where("estacionamentoId", "==", estacionamentoId)
+        );
+
+        let initialLoad = true;
+
+        onSnapshot(q, (snapshot) => {
+            if (initialLoad) {
+                initialLoad = false;
+                return;
+            }
+
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                    console.log("Nova notificação em tempo real:", change.doc.data());
+                    window.location.reload();
+                }
+            });
+        });
+    }
+</script>
 {% endblock %}
