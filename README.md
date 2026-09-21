@@ -61,12 +61,12 @@ pip install -r requirements.txt
 
 ### Faça as migrações
 ```bash
- py manage.py migrate  
+ python manage.py migrate  
 ```
 
 ### Rode o projeto
 ```bash
-py manage.py runserver    
+python manage.py runserver 8001
 ```
 
 ### Abra o projeto no localhost
