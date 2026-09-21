@@ -1,6 +1,7 @@
 import json
 import requests
 from datetime import datetime
+from django.contrib.auth.decorators import login_required
 
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponseRedirect
@@ -129,7 +130,7 @@ def logout_view(request):
 
 
 # --- Dashboard do Gestor ---
-
+@login_required(login_url='/login/')
 def gestor(request):
     id_estacionamento = request.session.get('id_estacionamento', '')
     if id_estacionamento:
@@ -157,7 +158,7 @@ def gestor(request):
 
     return render(request, 'admin.html', context)
 
-
+@login_required(login_url='/login/')
 def reservas(request):
     id_estacionamento = request.session.get("id_estacionamento", "")
 
