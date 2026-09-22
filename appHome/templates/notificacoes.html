@@ -16,7 +16,7 @@
                 <i class="bi bi-bell-fill me-2"></i>Notificações
             </h1>
         </div>
-        {% if notificacoes_nao_lidas > 0 %}
+        {% if nao_lidas > 0 %}
         <form method="post" class="d-inline">
             {% csrf_token %}
             <input type="hidden" name="acao" value="marcar_todas_como_lidas">
@@ -120,8 +120,8 @@
 
     <!-- Lista de notificações em grid -->
     <div class="notificacoes-grid" id="lista-notificacoes">
-        {% if notificacoes_com_vaga %}
-            {% for item in notificacoes_com_vaga %}
+        {% if notificacoes %}
+            {% for item in notificacoes %}
             <div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %}" id="notif-{{ item.id }}">
                 <div class="notificacao-header">
                     <span class="notificacao-tipo tipo-{{ item.tipo }}">
@@ -216,7 +216,7 @@
 
     if (estacionamentoId) {
         const q = query(
-            collection(db, "notificacao"),
+            collection(db, "notificacoes_admin"),
             where("estacionamentoId", "==", estacionamentoId)
         );
 

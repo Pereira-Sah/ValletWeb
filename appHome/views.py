@@ -16,7 +16,6 @@ from django.utils.decorators import method_decorator
 
 User = get_user_model()
 
-# Endereço base da sua API centralizada (pode ser configurado no settings.py)
 API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
 
 def api_request(method: str, endpoint: str, request_obj, data=None, params=None):
@@ -34,7 +33,7 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
             method=method.upper(),
             url=url,
             json=data if data else None,
-            params=params,  # <- Repassa os Query Parameters aqui
+            params=params,
             headers=headers,
             timeout=10.0
         )
@@ -43,7 +42,6 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
         print(f"[API ERROR] Erro na requisição para {url}: {e}")
         return None
 
-User = get_user_model()
 
 @csrf_exempt
 def firebase_login(request):
@@ -56,14 +54,11 @@ def firebase_login(request):
         if not email or not senha:
             return JsonResponse({"error": "E-mail e senha são obrigatórios."}, status=400)
 
-        # Envia como Query Parameters para bater com a assinatura do FastAPI: login(email: str, senha: str)
-        # Nota: O endpoint na sua API é /login (e não /auth/login)
         params = {
             "email": email,
             "senha": senha
         }
 
-        # Faz a chamada POST passando params ao invés de data/json
         api_res = api_request("POST", "auth/login", request, params=params)
 
         if not api_res or api_res.status_code != 200:
@@ -74,7 +69,6 @@ def firebase_login(request):
 
         login_data = api_res.json()
         
-        # O FastAPI retorna: {"mensagem": "...", "idToken": "...", "refreshToken": "...", "expiresIn": "...", "localId": "..."}
         uid = login_data.get("localId")
         id_token = login_data.get("idToken")
 
@@ -94,8 +88,12 @@ def firebase_login(request):
             request.session['user_cargo'] = perfil_data.get("cargo", "Padrão")
             request.session['fotoPerfil'] = perfil_data.get("fotoPerfil", "")
             
+            # ✅ ATUALIZAÇÃO: Garante o armazenamento do ID do estacionamento na sessão
+            id_estac = perfil_data.get("id_estacionamento") or perfil_data.get("estacionamento_id") or ""
+            request.session['id_estacionamento'] = id_estac
+            
             # Verifica se o tipo do usuário é gestor/admin
-            tipo_user = perfil_data.get("tipo_user", "").lower()
+            tipo_user = str(perfil_data.get("tipo_user", "")).lower()
             is_gestor = tipo_user in ["admin", "administrador", "superadmin", "gestor"]
         else:
             is_gestor = False
@@ -158,6 +156,7 @@ def gestor(request):
 
     return render(request, 'admin.html', context)
 
+
 @login_required(login_url='/login/')
 def reservas(request):
     id_estacionamento = request.session.get("id_estacionamento", "")
@@ -192,27 +191,25 @@ def reservas(request):
     return render(request, "reservas.html", context)
 
 
-# --- Notificações do Administrador ---
-
 class NotificacoesAdminView(LoginRequiredMixin, View):
     template_name = 'notificacoes.html'
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data()
-        return render(request, self.template_name, context)
+        template = self.get_template_names()[0]
+        return render(request, template, context)
 
     def post(self, request, *args, **kwargs):
         acao = request.POST.get('acao')
         notificacao_id = request.POST.get('notificacao_id')
 
-        # Encaminha a ação do POST diretamente para a API centralizada
         payload = {"acao": acao, "notificacao_id": notificacao_id}
-        response = api_request("POST", "/notificacoes/acao/", request, data=payload)
+        response = api_request("POST", "notificacoes/acao/", request, data=payload)
 
         if response and response.status_code == 200:
             messages.success(request, 'Ação executada com sucesso!')
         else:
-            messages.error(request, 'Erro ao processar ação na API.')
+            messages.error(request, 'Erro ao processar ação na API centralizada.')
 
         return redirect(request.META.get('HTTP_REFERER', '/notificacoes/'))
 
@@ -230,65 +227,12 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
             'apenas_nao_lidas': self.request.GET.get('apenas_nao_lidas', ''),
         }
 
-        response = api_request("GET", "/notificacoes/", self.request, params=params)
-        api_data = response.json() if response and response.status_code == 200 else {}
-
-        return {
-            'user_name': self.request.session.get('user_name', 'Visitante'),
-            'user_cargo': self.request.session.get('user_cargo', 'Cargo Desconhecido'),
-            'fotoPerfil': self.request.session.get('fotoPerfil', ''),
-            'id_estacionamento': self.request.session.get('id_estacionamento', ''),
-            'notificacoes_com_vaga': api_data.get('notificacoes', []),
-            'notificacoes_nao_lidas': api_data.get('nao_lidas', 0),
-            'total_notificacoes': api_data.get('total', 0),
-            'tipos_notificacao': api_data.get('tipos_notificacao', []),
-            'filtro_tipo': params['tipo'],
-            'filtro_placa': params['placa'],
-            'filtro_data_inicio': params['data_inicio'],
-            'filtro_data_fim': params['data_fim'],
-            'filtro_apenas_nao_lidas': params['apenas_nao_lidas'],
-        }
-
-# --- Notificações do Administrador ---
-
-class NotificacoesAdminView(LoginRequiredMixin, View):
-    template_name = 'notificacoes.html'
-
-    def get(self, request, *args, **kwargs):
-        context = self.get_context_data()
-        return render(request, self.template_name, context)
-
-    def post(self, request, *args, **kwargs):
-        acao = request.POST.get('acao')
-        notificacao_id = request.POST.get('notificacao_id')
-
-        # Encaminha a ação do POST diretamente para a API centralizada
-        payload = {"acao": acao, "notificacao_id": notificacao_id}
-        response = api_request("POST", "/notificacoes/acao/", request, data=payload)
-
+        response = api_request("GET", "notificacoes/", self.request, params=params)
+        
         if response and response.status_code == 200:
-            messages.success(request, 'Ação executada com sucesso!')
+            api_data = response.json()
         else:
-            messages.error(request, 'Erro ao processar ação na API.')
-
-        return redirect(request.META.get('HTTP_REFERER', '/notificacoes/'))
-
-    def get_template_names(self):
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return ['partials/_notificacoes_list.html']
-        return [self.template_name]
-
-    def get_context_data(self, **kwargs):
-        params = {
-            'tipo': self.request.GET.get('tipo', ''),
-            'placa': self.request.GET.get('placa', ''),
-            'data_inicio': self.request.GET.get('data_inicio', ''),
-            'data_fim': self.request.GET.get('data_fim', ''),
-            'apenas_nao_lidas': self.request.GET.get('apenas_nao_lidas', ''),
-        }
-
-        response = api_request("GET", "/notificacoes/", self.request, params=params)
-        api_data = response.json() if response and response.status_code == 200 else {}
+            api_data = {}
 
         return {
             'user_name': self.request.session.get('user_name', 'Visitante'),
@@ -309,29 +253,31 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
 
 class NotificacoesAPIView(LoginRequiredMixin, View):
     """
-    Mantida apenas para requisições pontuais de ações do frontend (AJAX).
+    Mantida para requisições pontuais do frontend (AJAX e Firestore Realtime updates).
     """
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     def get(self, request):
         params = {
             'limit': request.GET.get('limit', 20),
             'offset': request.GET.get('offset', 0),
             'apenas_nao_lidas': request.GET.get('apenas_nao_lidas', 'false'),
         }
-        res = api_request("GET", "/notificacoes/api/", request, params=params)
+        res = api_request("GET", "notificacoes/api/", request, params=params)
         if res and res.status_code == 200:
             return JsonResponse(res.json())
         return JsonResponse({'notificacoes': [], 'total': 0, 'nao_lidas': 0}, status=500)
 
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
     def post(self, request):
         try:
-            data = json.loads(request.body)
-            res = api_request("POST", "/notificacoes/api/", request, data=data)
+            data = json.loads(request.body) if request.body else {}
+            res = api_request("POST", "notificacoes/api/", request, data=data)
             if res:
                 return JsonResponse(res.json(), status=res.status_code)
             return JsonResponse({'success': False, 'error': 'Erro de comunicação com a API Backend'}, status=502)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Payload JSON inválido'}, status=400)
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
