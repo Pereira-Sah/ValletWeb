@@ -87,32 +87,41 @@ def firebase_login(request):
         request.session["id_token"] = id_token
 
         perfil_res = api_request("GET", "auth/me", request)
+        
+        is_gestor = False
 
         if perfil_res and perfil_res.status_code == 200:
             perfil_data = perfil_res.json()
             request.session["user_name"] = perfil_data.get("nome") or perfil_data.get("nome_empresa", "Usuário")
-            request.session["user_cargo"] = perfil_data.get("cargo", "Padrão")
+            
+            tipo_user = str(perfil_data.get("tipo_user") or perfil_data.get("tipoUser") or perfil_data.get("cargo", "Padrão")).strip().lower()
+            request.session["user_cargo"] = tipo_user.capitalize()
             request.session["fotoPerfil"] = perfil_data.get("fotoPerfil", "")
 
-            id_estac = (
-                perfil_data.get("id_estacionamento")
-                or perfil_data.get("estacionamento_id")
-                or perfil_data.get("estacionamentoId")
-            )
+            if tipo_user in ["admin", "gestor", "administrador", "superadmin"]:
+                is_gestor = True
+
+            estac_res = api_request("GET", "usuarios/listar_estacionamentos_usuario", request)
+            
+            id_estac = None
+            if estac_res and estac_res.status_code == 200:
+                estacionamentos = estac_res.json()
+                if isinstance(estacionamentos, list) and len(estacionamentos) > 0:
+                    id_estac = estacionamentos[0].get("id")
 
             if id_estac:
-                request.session["id_estacionamento"] = str(id_estac)
+                request.session["id_estacionamento"] = str(id_estac).strip()
             else:
-                request.session["id_estacionamento"] = str(uid)
-        else:
-            is_gestor = False
+                request.session["id_estacionamento"] = ""
 
         redirect_url = "/gestor/" if is_gestor else "/"
 
         return JsonResponse({"ok": True, "uid": uid, "email": email, "redirect": redirect_url})
 
     except Exception as e:
+        print(f"❌ Erro na view firebase_login: {e}")
         return JsonResponse({"error": str(e)}, status=500)
+
 
 def get_clean_id_estacionamento(request) -> str:
     """
@@ -162,6 +171,7 @@ def reservas(request):
     }
 
     return render(request, "reservas.html", context)
+
 
 @login_required(login_url="/login/")
 def gestor(request):
@@ -226,19 +236,6 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
 
         id_estacionamento = get_clean_id_estacionamento(self.request)
 
-        if not id_estacionamento:
-            perfil_res = api_request("GET", "auth/me", self.request)
-            if perfil_res and perfil_res.status_code == 200:
-                perfil_data = perfil_res.json()
-                id_estac_recuperado = (
-                    perfil_data.get("id_estacionamento")
-                    or perfil_data.get("estacionamento_id")
-                    or perfil_data.get("estacionamentoId")
-                )
-                if id_estac_recuperado and str(id_estac_recuperado) != str(self.request.user.username):
-                    id_estacionamento = str(id_estac_recuperado)
-                    self.request.session["id_estacionamento"] = id_estacionamento
-
         params = {
             "tipo": self.request.GET.get("tipo", "").strip(),
             "placa": self.request.GET.get("placa", "").strip(),
@@ -267,6 +264,7 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
             "filtro_apenas_nao_lidas": apenas_nao_lidas_bool,
         }
 
+
 def appHome(request):
     return render(request, 'home.html')
 
@@ -281,6 +279,7 @@ def logout_view(request):
     except Exception:
         pass
     return HttpResponseRedirect('/login/')
+
 
 class NotificacoesAPIView(LoginRequiredMixin, View):
     """
