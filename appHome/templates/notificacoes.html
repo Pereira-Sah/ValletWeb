@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="notificacoes-container">
     <!-- Cabeçalho -->
     <div class="page-header">
@@ -119,7 +120,7 @@
     </div>
 
     <!-- Lista de notificações em grid -->
-    <div class="notificacoes-grid" id="lista-notificacoes">
+    <div class="notificacoes-grid" id="container-notificacoes">
         {% if notificacoes %}
             {% for item in notificacoes %}
             <div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %}" id="notif-{{ item.id }}">
@@ -194,7 +195,6 @@
         {% endif %}
     </div>
 </div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -212,28 +212,67 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const estacionamentoId = "{{ id_estacionamento }}";
+    const rawId = "{{ id_estacionamento }}".trim();
 
-    if (estacionamentoId) {
+    if (rawId && rawId !== "None" && rawId !== "") {
+        console.log("📡 [Realtime] Ouvindo Firestore para o ID:", rawId);
+
+        const targetIds = [rawId];
+        if (!isNaN(rawId)) {
+            targetIds.push(Number(rawId));
+        }
+
         const q = query(
             collection(db, "notificacoes_admin"),
-            where("estacionamentoId", "==", estacionamentoId)
+            where("estacionamentoId", "in", targetIds)
         );
 
         let initialLoad = true;
 
         onSnapshot(q, (snapshot) => {
+            // Ignora a carga inicial da página
             if (initialLoad) {
                 initialLoad = false;
                 return;
             }
 
+            // Ignora mutações locais da própria página
+            if (snapshot.metadata.hasPendingWrites) {
+                return;
+            }
+
+            let houveNovosDocumentos = false;
+
             snapshot.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                    console.log("Nova notificação em tempo real:", change.doc.data());
-                    window.location.reload();
+                if (change.type === "added" || change.type === "modified") {
+                    houveNovosDocumentos = true;
                 }
             });
+
+            // AQUELAS LINHAS ENTRARAM AQUI:
+            if (houveNovosDocumentos) {
+                console.log("🔄 Atualizando a lista de notificações em segundo plano...");
+
+                setTimeout(() => {
+                    fetch(window.location.href, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        const container = document.getElementById('container-notificacoes'); 
+                        if (container) {
+                            container.innerHTML = html;
+                        } else {
+                            window.location.reload();
+                        }
+                    })
+                    .catch(err => console.error("Erro ao atualizar partial de notificações:", err));
+                }, 800);
+            }
+        }, (error) => {
+            console.error("❌ [Erro Firestore Realtime]:", error);
         });
     }
 </script>

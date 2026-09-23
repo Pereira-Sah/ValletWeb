@@ -13,29 +13,43 @@ from django.views import View
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 
 User = get_user_model()
 
 API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
 
+
 def api_request(method: str, endpoint: str, request_obj, data=None, params=None):
     url = f"{API_BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
     headers = {
-        "X-Estacionamento-ID": request_obj.session.get("id_estacionamento", ""),
+        "X-Estacionamento-ID": get_clean_id_estacionamento(request_obj),
     }
-    
+
     id_token = request_obj.session.get("id_token")
     if id_token:
         headers["Authorization"] = f"Bearer {id_token}"
 
+    filtered_params = None
+    if params and isinstance(params, dict):
+        filtered_params = {}
+        for k, v in params.items():
+            if v in [None, ""]:
+                continue
+            if isinstance(v, bool):
+                filtered_params[k] = "true" if v else "false"
+            else:
+                filtered_params[k] = v
+        if not filtered_params:
+            filtered_params = None
     try:
         response = requests.request(
             method=method.upper(),
             url=url,
             json=data if data else None,
-            params=params,
+            params=filtered_params,
             headers=headers,
-            timeout=10.0
+            timeout=10.0,
         )
         return response
     except requests.RequestException as e:
@@ -46,19 +60,14 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
 @csrf_exempt
 def firebase_login(request):
     try:
-        # Extrai os dados enviados do formulário HTML/JS
         payload = json.loads(request.body.decode()) if request.body else {}
         email = payload.get("email")
-        senha = payload.get("password")  # No JS vem como 'password'
+        senha = payload.get("password")
 
         if not email or not senha:
             return JsonResponse({"error": "E-mail e senha são obrigatórios."}, status=400)
 
-        params = {
-            "email": email,
-            "senha": senha
-        }
-
+        params = {"email": email, "senha": senha}
         api_res = api_request("POST", "auth/login", request, params=params)
 
         if not api_res or api_res.status_code != 200:
@@ -68,100 +77,55 @@ def firebase_login(request):
             return JsonResponse({"error": err_msg}, status=api_res.status_code if api_res else 502)
 
         login_data = api_res.json()
-        
         uid = login_data.get("localId")
         id_token = login_data.get("idToken")
 
-        # 1. Autentica localmente no Django
         user, _ = User.objects.get_or_create(username=uid, defaults={"email": email})
-        user.backend = 'appHome.auth_backend.FirebaseBackend'
+        user.backend = "appHome.auth_backend.FirebaseBackend"
         login(request, user)
 
-        # 2. Armazena o idToken do Firebase na sessão
-        request.session['id_token'] = id_token
+        request.session["id_token"] = id_token
 
-        # 3. Busca o perfil completo do usuário chamando o endpoint /me da API
         perfil_res = api_request("GET", "auth/me", request)
+
         if perfil_res and perfil_res.status_code == 200:
             perfil_data = perfil_res.json()
-            request.session['user_name'] = perfil_data.get("nome", "Usuário")
-            request.session['user_cargo'] = perfil_data.get("cargo", "Padrão")
-            request.session['fotoPerfil'] = perfil_data.get("fotoPerfil", "")
-            
-            # ✅ ATUALIZAÇÃO: Garante o armazenamento do ID do estacionamento na sessão
-            id_estac = perfil_data.get("id_estacionamento") or perfil_data.get("estacionamento_id") or ""
-            request.session['id_estacionamento'] = id_estac
-            
-            # Verifica se o tipo do usuário é gestor/admin
-            tipo_user = str(perfil_data.get("tipo_user", "")).lower()
-            is_gestor = tipo_user in ["admin", "administrador", "superadmin", "gestor"]
+            request.session["user_name"] = perfil_data.get("nome") or perfil_data.get("nome_empresa", "Usuário")
+            request.session["user_cargo"] = perfil_data.get("cargo", "Padrão")
+            request.session["fotoPerfil"] = perfil_data.get("fotoPerfil", "")
+
+            id_estac = (
+                perfil_data.get("id_estacionamento")
+                or perfil_data.get("estacionamento_id")
+                or perfil_data.get("estacionamentoId")
+            )
+
+            if id_estac:
+                request.session["id_estacionamento"] = str(id_estac)
+            else:
+                request.session["id_estacionamento"] = str(uid)
         else:
             is_gestor = False
 
         redirect_url = "/gestor/" if is_gestor else "/"
 
-        return JsonResponse({
-            "ok": True,
-            "uid": uid,
-            "email": email,
-            "redirect": redirect_url
-        })
+        return JsonResponse({"ok": True, "uid": uid, "email": email, "redirect": redirect_url})
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-
-def appHome(request):
-    return render(request, 'home.html')
-
-
-def login_view(request):
-    return render(request, 'login.html')
-
-
-def logout_view(request):
-    try:
-        logout(request)
-    except Exception:
-        pass
-    return HttpResponseRedirect('/login/')
+def get_clean_id_estacionamento(request) -> str:
+    """
+    Retorna o id_estacionamento armazenado na sessão.
+    Caso esteja vazio, retorna string vazia sem apagar a sessão desnecessariamente.
+    """
+    return str(request.session.get("id_estacionamento", "")).strip()
 
 
-# --- Dashboard do Gestor ---
-@login_required(login_url='/login/')
-def gestor(request):
-    id_estacionamento = request.session.get('id_estacionamento', '')
-    if id_estacionamento:
-        endpoint = f"/admin/{id_estacionamento}/dashboard"
-    else:
-        endpoint = "/admin/dashboard"
-        
-    response = api_request("GET", endpoint, request)
-    dash_data = response.json() if response and response.status_code == 200 else {}
-
-    context = {
-        'user_name': request.session.get('user_name', 'Visitante'),
-        'user_cargo': request.session.get('user_cargo', 'Cargo Desconhecido'),
-        'fotoPerfil': request.session.get('fotoPerfil', ''),
-        'vagas_total': dash_data.get('vagas_total', 0),
-        'vagas_ocupadas': dash_data.get('vagas_ocupadas', 0),
-        'reservas_hoje': dash_data.get('reservas_hoje', 0),
-        'reservas_pendentes': dash_data.get('reservas_pendentes', 0),
-        'receita_mensal': dash_data.get('receita_mensal', '0,00'),
-        'reservas_canceladas': dash_data.get('reservas_canceladas', 0),
-        'receita_cancelada': dash_data.get('receita_cancelada', '0,00'),
-        'ultimas_reservas': dash_data.get('ultimas_reservas', []),
-        'id_estacionamento_usado': id_estacionamento,
-    }
-
-    return render(request, 'admin.html', context)
-
-
-@login_required(login_url='/login/')
+@login_required(login_url="/login/")
 def reservas(request):
-    id_estacionamento = request.session.get("id_estacionamento", "")
+    id_estacionamento = get_clean_id_estacionamento(request)
 
-    # Coleta filtros para enviar via Query Parameters
     params = {
         "placa": request.GET.get("placa", "").strip(),
         "usuario": request.GET.get("usuario", "").strip(),
@@ -170,11 +134,20 @@ def reservas(request):
         "status": request.GET.get("status", "").strip().lower(),
     }
 
-    # Trata caso o ID do estacionamento venha vazio
-    endpoint = f"{id_estacionamento}/reservas/" if id_estacionamento else "/estacionamentos/reservas/"
+    if id_estacionamento:
+        endpoint = f"/{id_estacionamento}/reserva/"
+    else:
+        endpoint = "/reserva/"
 
     response = api_request("GET", endpoint, request, params=params)
-    reservas_lista = response.json().get("reservas", []) if response and response.status_code == 200 else []
+
+    reservas_lista = []
+    if response and response.status_code == 200:
+        res_json = response.json()
+        if isinstance(res_json, dict):
+            reservas_lista = res_json.get("reservas", [])
+        elif isinstance(res_json, list):
+            reservas_lista = res_json
 
     context = {
         "reservas": reservas_lista,
@@ -190,9 +163,38 @@ def reservas(request):
 
     return render(request, "reservas.html", context)
 
+@login_required(login_url="/login/")
+def gestor(request):
+    id_estacionamento = get_clean_id_estacionamento(request)
+    if id_estacionamento:
+        endpoint = f"/admin/{id_estacionamento}/dashboard"
+    else:
+        endpoint = "/admin/dashboard"
 
+    response = api_request("GET", endpoint, request)
+    dash_data = response.json() if response and response.status_code == 200 else {}
+
+    context = {
+        "user_name": request.session.get("user_name", "Visitante"),
+        "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
+        "fotoPerfil": request.session.get("fotoPerfil", ""),
+        "vagas_total": dash_data.get("vagas_total", 0),
+        "vagas_ocupadas": dash_data.get("vagas_ocupadas", 0),
+        "reservas_hoje": dash_data.get("reservas_hoje", 0),
+        "reservas_pendentes": dash_data.get("reservas_pendentes", 0),
+        "receita_mensal": dash_data.get("receita_mensal", "0,00"),
+        "reservas_canceladas": dash_data.get("reservas_canceladas", 0),
+        "receita_cancelada": dash_data.get("receita_cancelada", "0,00"),
+        "ultimas_reservas": dash_data.get("ultimas_reservas", []),
+        "id_estacionamento_usado": id_estacionamento,
+    }
+
+    return render(request, "admin.html", context)
+
+
+@method_decorator(never_cache, name="dispatch")
 class NotificacoesAdminView(LoginRequiredMixin, View):
-    template_name = 'notificacoes.html'
+    template_name = "notificacoes.html"
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data()
@@ -200,56 +202,85 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
         return render(request, template, context)
 
     def post(self, request, *args, **kwargs):
-        acao = request.POST.get('acao')
-        notificacao_id = request.POST.get('notificacao_id')
+        acao = request.POST.get("acao")
+        notificacao_id = request.POST.get("notificacao_id")
 
         payload = {"acao": acao, "notificacao_id": notificacao_id}
         response = api_request("POST", "notificacoes/acao/", request, data=payload)
 
         if response and response.status_code == 200:
-            messages.success(request, 'Ação executada com sucesso!')
+            messages.success(request, "Ação executada com sucesso!")
         else:
-            messages.error(request, 'Erro ao processar ação na API centralizada.')
+            messages.error(request, "Erro ao processar ação na API centralizada.")
 
-        return redirect(request.META.get('HTTP_REFERER', '/notificacoes/'))
+        return redirect(request.META.get("HTTP_REFERER", "/notificacoes/"))
 
     def get_template_names(self):
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return ['partials/_notificacoes_list.html']
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return ["partials/_notificacoes_list.html"]
         return [self.template_name]
 
     def get_context_data(self, **kwargs):
+        apenas_nao_lidas_raw = self.request.GET.get("apenas_nao_lidas", "")
+        apenas_nao_lidas_bool = True if apenas_nao_lidas_raw in ["on", "true", "1", "True"] else False
+
+        id_estacionamento = get_clean_id_estacionamento(self.request)
+
+        if not id_estacionamento:
+            perfil_res = api_request("GET", "auth/me", self.request)
+            if perfil_res and perfil_res.status_code == 200:
+                perfil_data = perfil_res.json()
+                id_estac_recuperado = (
+                    perfil_data.get("id_estacionamento")
+                    or perfil_data.get("estacionamento_id")
+                    or perfil_data.get("estacionamentoId")
+                )
+                if id_estac_recuperado and str(id_estac_recuperado) != str(self.request.user.username):
+                    id_estacionamento = str(id_estac_recuperado)
+                    self.request.session["id_estacionamento"] = id_estacionamento
+
         params = {
-            'tipo': self.request.GET.get('tipo', ''),
-            'placa': self.request.GET.get('placa', ''),
-            'data_inicio': self.request.GET.get('data_inicio', ''),
-            'data_fim': self.request.GET.get('data_fim', ''),
-            'apenas_nao_lidas': self.request.GET.get('apenas_nao_lidas', ''),
+            "tipo": self.request.GET.get("tipo", "").strip(),
+            "placa": self.request.GET.get("placa", "").strip(),
+            "data_inicio": self.request.GET.get("data_inicio", "").strip(),
+            "data_fim": self.request.GET.get("data_fim", "").strip(),
+            "apenas_nao_lidas": "true" if apenas_nao_lidas_bool else None,
         }
 
         response = api_request("GET", "notificacoes/", self.request, params=params)
-        
-        if response and response.status_code == 200:
-            api_data = response.json()
-        else:
-            api_data = {}
+
+        api_data = response.json() if (response and response.status_code == 200) else {}
 
         return {
-            'user_name': self.request.session.get('user_name', 'Visitante'),
-            'user_cargo': self.request.session.get('user_cargo', 'Cargo Desconhecido'),
-            'fotoPerfil': self.request.session.get('fotoPerfil', ''),
-            'id_estacionamento': self.request.session.get('id_estacionamento', ''),
-            'notificacoes_com_vaga': api_data.get('notificacoes', []),
-            'notificacoes_nao_lidas': api_data.get('nao_lidas', 0),
-            'total_notificacoes': api_data.get('total', 0),
-            'tipos_notificacao': api_data.get('tipos_notificacao', []),
-            'filtro_tipo': params['tipo'],
-            'filtro_placa': params['placa'],
-            'filtro_data_inicio': params['data_inicio'],
-            'filtro_data_fim': params['data_fim'],
-            'filtro_apenas_nao_lidas': params['apenas_nao_lidas'],
+            "user_name": self.request.session.get("user_name", "Visitante"),
+            "user_cargo": self.request.session.get("user_cargo", "Cargo Desconhecido"),
+            "fotoPerfil": self.request.session.get("fotoPerfil", ""),
+            "id_estacionamento": id_estacionamento,
+            "notificacoes": api_data.get("notificacoes", []),
+            "nao_lidas": api_data.get("nao_lidas", 0),
+            "total_notificacoes": api_data.get("total", 0),
+            "tipos_notificacao": api_data.get("tipos_notificacao", []),
+            "filtro_tipo": params["tipo"],
+            "filtro_placa": params["placa"],
+            "filtro_data_inicio": params["data_inicio"],
+            "filtro_data_fim": params["data_fim"],
+            "filtro_apenas_nao_lidas": apenas_nao_lidas_bool,
         }
 
+def appHome(request):
+    return render(request, 'home.html')
+
+
+def login_view(request):
+    return render(request, 'login.html')
+
+
+def logout_view(request):
+    try:
+        logout(request)
+    except Exception:
+        pass
+    return HttpResponseRedirect('/login/')
 
 class NotificacoesAPIView(LoginRequiredMixin, View):
     """

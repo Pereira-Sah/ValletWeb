@@ -29,15 +29,17 @@
 
             <div class="chart-card shadow small-chart">
                 <h2>Status das Reservas</h2>
-                    <div class="pizza-wrapper">
-                        <div class="pizza-legend">
-                            <div><span class="dot verde"></span> Hoje</div>
-                            <div><span class="dot verde-escuro"></span> Pendentes</div>
-                            <div><span class="dot vermelho"></span> Canceladas</div>
-                        </div>
+                <div class="pizza-wrapper">
+                    <div class="pizza-legend">
+                        <div><span class="dot verde"></span> Hoje</div>
+                        <div><span class="dot verde-escuro"></span> Pendentes</div>
+                        <div><span class="dot vermelho"></span> Canceladas</div>
+                    </div>
 
+                    <div class="canvas-holder">
                         <canvas id="statusReservasChart"></canvas>
                     </div>
+                </div>
             </div>
         </div>
 
@@ -64,20 +66,23 @@
         </div>
 
 {% endblock %}
-
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+// --- Formatação das Datas na Lista ---
 document.querySelectorAll('.data-reserva').forEach(el => {
     const raw = el.dataset.date; 
+    if (!raw) return;
 
-    const [data, hora] = raw.split(" ");
+    const partes = raw.split(" ");
+    if (partes.length < 2) return;
+
+    const [data, hora] = partes;
     const [ano, mes, dia] = data.split("-").map(Number);
     const [h, m, s] = hora.split(":").map(Number);
 
     const d = new Date(ano, mes - 1, dia, h, m, s);
-
     d.setHours(d.getHours() - 3);
 
     el.textContent = d.toLocaleString("pt-BR", {
@@ -90,145 +95,141 @@ document.querySelectorAll('.data-reserva').forEach(el => {
     });
 });
 
+/* === 1. Status das Reservas === */
+const elStatus = document.getElementById('statusReservasChart');
+if (elStatus) {
+    let hoje = Number("{{ reservas_hoje|default:0 }}") || 0;
+    let pendentes = Number("{{ reservas_pendentes|default:0 }}") || 0;
+    let canceladas = Number("{{ reservas_canceladas|default:0 }}") || 0;
 
+    console.log("Métricas recebidas:", { hoje, pendentes, canceladas });
 
-/* ------------------------------------------
-   Função para converter valores BR
-----------------------------------------------*/
-function parseValorBrasil(v) {
-    if (!v) return 0;
-    return parseFloat(v.replace(".", "").replace(",", ".")) || 0;
+    const total = hoje + pendentes + canceladas;
+    
+    new Chart(elStatus, {
+        type: 'doughnut',
+        data: {
+            labels: total > 0 ? ['Hoje', 'Pendentes', 'Canceladas'] : ['Sem Reservas'],
+            datasets: [{
+                data: total > 0 ? [hoje, pendentes, canceladas] : [1],
+                backgroundColor: total > 0 ? ['#00A676', '#046C4E', '#D32F2F'] : ['#E0E0E0'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
 }
 
-/* === Receita Mensal === */
-new Chart(document.getElementById('receitaMensalChart'), {
-    type: 'bar',
-    data: {
-        labels: ['Receita Mensal'],
-        datasets: [{
-            label: 'R$',
-            data: [parseValorBrasil("{{ receita_mensal }}")],
-            backgroundColor: '#00A676',
-            borderRadius: 10
-        }]
-    }
-});
-
-/* === Status das Reservas === */
-new Chart(document.getElementById('statusReservasChart'), {
-    type: 'doughnut',
-    data: {
-        // labels: ['Hoje', 'Pendentes', 'Canceladas'],
-        datasets: [{
-            data: [
-                {{ reservas_hoje }},
-                {{ reservas_pendentes }},
-                {{ reservas_canceladas }}
-            ],
-            backgroundColor: ['#00A676', '#046C4E', '#D32F2F'],
-            hoverOffset: 18
-        }]
-    }
-});
-
-/* === Ocupação das Vagas — CALCULADO NO FRONT === */
-
+/* === 2. Ocupação das Vagas === */
 const vagasTotal = Number("{{ vagas_total }}") || 0;
-
 let vagasOcup = 0;
 
 {% for reserva in ultimas_reservas %}
-    {% if reserva.status == "ativa" %}
+    {% if reserva.status == "ativa" or reserva.status == "confirmada" %}
         vagasOcup++;
     {% endif %}
 {% endfor %}
 
 if (vagasOcup === 0 && vagasTotal > 0) {
-    vagasOcup = 2;
+    vagasOcup = Number("{{ vagas_ocupadas }}") || 0;
 }
 
-const vagasLivres = vagasTotal - vagasOcup;
+const vagasLivres = Math.max(0, vagasTotal - vagasOcup);
 
-new Chart(document.getElementById('ocupacaoVagasChart'), {
-    type: 'bar',
-    data: {
-        labels: ['Vagas'],
-        datasets: [
-            { label: 'Ocupadas', data: [vagasOcup], backgroundColor: '#046C4E', borderRadius: 10 },
-            { label: 'Livres', data: [vagasLivres], backgroundColor: '#00A676', borderRadius: 10 }
-        ]
-    },
-    options: { indexAxis: 'y' }
-});
+const elOcupacao = document.getElementById('ocupacaoVagasChart');
+if (elOcupacao) {
+    new Chart(elOcupacao, {
+        type: 'bar',
+        data: {
+            labels: ['Vagas'],
+            datasets: [
+                { label: 'Ocupadas', data: [vagasOcup], backgroundColor: '#046C4E', borderRadius: 10 },
+                { label: 'Livres', data: [vagasLivres], backgroundColor: '#00A676', borderRadius: 10 }
+            ]
+        },
+        options: { indexAxis: 'y' }
+    });
+}
 
-
-/* === Reservas da Semana === */
-const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-let contagem = [0,0,0,0,0,0,0];
+/* === 3. Reservas da Semana === */
+const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+let contagemSemana = [0, 0, 0, 0, 0, 0, 0];
 
 {% for r in ultimas_reservas %}
-{% if r.inicioReserva %}
-(function() {
-        let d = new Date("{{ r.inicioReserva|date:'Y-m-d' }}T00:00:00");
-        contagem[d.getDay()]++;
-
-})();
-{% endif %}
+    {% if r.inicioReserva %}
+    (function() {
+        const strData = "{{ r.inicioReserva }}";
+        const d = new Date(strData);
+        if (!isNaN(d.getTime())) {
+            contagemSemana[d.getDay()]++;
+        }
+    })();
+    {% endif %}
 {% endfor %}
 
-new Chart(document.getElementById('reservasSemanaChart'), {
-    type: 'line',
-    data: {
-        labels: dias,
-        datasets: [{
-            label: 'Reservas',
-            data: contagem,
-            borderColor: '#00A676',
-            backgroundColor: 'rgba(0,166,118,0.2)',
-            fill: true,
-            tension: 0.25
-        }]
-    }
-});
+const elSemana = document.getElementById('reservasSemanaChart');
+if (elSemana) {
+    new Chart(elSemana, {
+        type: 'line',
+        data: {
+            labels: dias,
+            datasets: [{
+                label: 'Reservas',
+                data: contagemSemana,
+                borderColor: '#00A676',
+                backgroundColor: 'rgba(0,166,118,0.2)',
+                fill: true,
+                tension: 0.25
+            }]
+        }
+    });
+}
 
-/* === Reservas por Horário (Somente HOJE)  === */
+/* === 4. Reservas por Horário (Hoje) === */
 let horarios = Array(24).fill(0);
-
-const hojeLocal = new Date();
-const hojeStr = hojeLocal.toISOString().split("T")[0];
+const hojeStr = new Date().toISOString().split("T")[0];
 
 {% for r in ultimas_reservas %}
-{% if r.inicioReserva %}
-(function(){
-    const iso = "{{ r.inicioReserva|date:'c' }}"; 
-    const d = new Date(iso); 
-    const dia = d.toISOString().split("T")[0]; 
-    const hora = d.getHours();
-
-    if (dia === hojeStr) {
-        horarios[hora]++;
-    }
-})();
-{% endif %}
+    {% if r.inicioReserva %}
+    (function(){
+        const strData = "{{ r.inicioReserva }}";
+        const d = new Date(strData);
+        if (!isNaN(d.getTime())) {
+            const dia = d.toISOString().split("T")[0];
+            if (dia === hojeStr) {
+                horarios[d.getHours()]++;
+            }
+        }
+    })();
+    {% endif %}
 {% endfor %}
 
-new Chart(document.getElementById('reservasPorHorarioChart'), {
-    type: 'line',
-    data: {
-        labels: [...Array(24).keys()].map(h => `${String(h).padStart(2,'0')}h`),
-        datasets: [{
-            label: 'Reservas',
-            data: horarios,
-            borderColor: '#046C4E',
-            backgroundColor: 'rgba(4,108,78,0.25)',
-            fill: true,
-            tension: 0.3
-        }]
-    },
-    options: {
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-    }
-});
-
+const elHorario = document.getElementById('reservasPorHorarioChart');
+if (elHorario) {
+    new Chart(elHorario, {
+        type: 'line',
+        data: {
+            labels: [...Array(24).keys()].map(h => `${String(h).padStart(2,'0')}h`),
+            datasets: [{
+                label: 'Reservas',
+                data: horarios,
+                borderColor: '#046C4E',
+                backgroundColor: 'rgba(4,108,78,0.25)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+}
 </script>
 {% endblock %}
