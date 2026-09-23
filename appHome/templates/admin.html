@@ -1,235 +1,280 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard.css' %}?v=20260923-2">
+{% endblock %}
+
 {% block tituloPagina %}Dashboard{% endblock %}
 
 {% block content %}
-    <!-- Conteúdo principal -->
+<div class="dashboard-header">
+    <div>
         <h1 class="titulo-dashboard">Dashboard</h1>
+        <p class="dashboard-subtitle">Acompanhe o movimento do estacionamento em um só lugar.</p>
+    </div>
+    <span class="demo-badge"><i class="bi bi-bar-chart-line-fill"></i> Dados ilustrativos</span>
+</div>
 
-        <!-- ==== LINHA 1: Receita + Ocupação ==== -->
-        <div class="charts-row-medium">
-            <div class="chart-card shadow">
-                <h2>Reservas por Horário (Hoje)</h2>
-                <canvas id="reservasPorHorarioChart"></canvas>
+<section class="metric-grid" aria-label="Resumo do estacionamento">
+    <article class="metric-card">
+        <div class="metric-card-top">
+            <span>Faturamento · 7 dias</span>
+            <i class="bi bi-cash-coin"></i>
+        </div>
+        <strong>R$ 3.480,00</strong>
+        <small class="metric-positive"><i class="bi bi-arrow-up-right"></i> 12,5% nesta semana</small>
+    </article>
+
+    <article class="metric-card">
+        <div class="metric-card-top">
+            <span>Reservas hoje</span>
+            <i class="bi bi-calendar2-check"></i>
+        </div>
+        <strong>28</strong>
+        <small>6 aguardando confirmação</small>
+    </article>
+
+    <article class="metric-card">
+        <div class="metric-card-top">
+            <span>Ocupação atual</span>
+            <i class="bi bi-p-square-fill"></i>
+        </div>
+        <strong>72%</strong>
+        <small>36 de 50 vagas ocupadas</small>
+    </article>
+
+    <article class="metric-card">
+        <div class="metric-card-top">
+            <span>Permanência média</span>
+            <i class="bi bi-stopwatch-fill"></i>
+        </div>
+        <strong>1h 42min</strong>
+        <small>média das reservas concluídas</small>
+    </article>
+</section>
+
+<section class="dashboard-grid dashboard-grid-primary">
+    <article class="chart-card chart-card-wide">
+        <div class="chart-heading">
+            <div>
+                <h2>Faturamento dos últimos 7 dias</h2>
+                <p>Valores recebidos por dia</p>
             </div>
+            <span class="chart-highlight">R$ 3.480,00</span>
+        </div>
+        <div class="chart-canvas chart-canvas-large">
+            <canvas id="faturamentoChart"></canvas>
+        </div>
+    </article>
 
-            <div class="chart-card shadow">
-                <h2>Ocupação das Vagas</h2>
+    <article class="chart-card">
+        <div class="chart-heading">
+            <div>
+                <h2>Reservas ao longo do dia</h2>
+                <p>Movimento estimado de hoje</p>
+            </div>
+            <i class="bi bi-clock-history chart-icon"></i>
+        </div>
+        <div class="chart-canvas chart-canvas-large">
+            <canvas id="reservasPorHorarioChart"></canvas>
+        </div>
+    </article>
+</section>
+
+<section class="dashboard-grid dashboard-grid-secondary">
+    <article class="chart-card occupancy-card">
+        <div class="chart-heading">
+            <div>
+                <h2>Ocupação das vagas</h2>
+                <p>Situação neste momento</p>
+            </div>
+            <i class="bi bi-p-square chart-icon"></i>
+        </div>
+        <div class="occupancy-layout">
+            <div class="donut-holder">
                 <canvas id="ocupacaoVagasChart"></canvas>
+                <div class="donut-center"><strong>72%</strong><span>ocupadas</span></div>
+            </div>
+            <div class="occupancy-legend">
+                <div><span class="legend-dot occupied"></span><strong>36</strong><small>Ocupadas</small></div>
+                <div><span class="legend-dot available"></span><strong>14</strong><small>Disponíveis</small></div>
             </div>
         </div>
+    </article>
 
-        <!-- ==== LINHA 2: Reservas Semana + Status ==== -->
-        <div class="charts-row-medium">
-            <div class="chart-card shadow">
-                <h2>Reservas da Semana</h2>
-                <canvas id="reservasSemanaChart"></canvas>
+    <article class="chart-card status-card">
+        <div class="chart-heading status-heading">
+            <div>
+                <h2>Status das reservas</h2>
+                <p>Distribuição por período</p>
             </div>
-
-            <div class="chart-card shadow small-chart">
-                <h2>Status das Reservas</h2>
-                <div class="pizza-wrapper">
-                    <div class="pizza-legend">
-                        <div><span class="dot verde"></span> Hoje</div>
-                        <div><span class="dot verde-escuro"></span> Pendentes</div>
-                        <div><span class="dot vermelho"></span> Canceladas</div>
-                    </div>
-
-                    <div class="canvas-holder">
-                        <canvas id="statusReservasChart"></canvas>
-                    </div>
-                </div>
-            </div>
+            <select id="statusPeriodFilter" class="chart-filter" aria-label="Filtrar status das reservas">
+                <option value="hoje">Hoje</option>
+                <option value="seteDias">Últimos 7 dias</option>
+                <option value="trintaDias">Últimos 30 dias</option>
+            </select>
         </div>
+        <div class="status-layout">
+            <div class="status-donut-holder">
+                <canvas id="statusReservasChart"></canvas>
+                <div class="donut-center status-center"><strong id="statusTotal">28</strong><span>reservas</span></div>
+            </div>
+            <div class="status-legend" id="statusLegend"></div>
+        </div>
+    </article>
 
+</section>
 
-        <!-- ==== BASE: Últimas Reservas ==== -->
-        <div class="last-reservations-full shadow">
-            <h2>Últimas Reservas</h2>
-           <ul class="activity-list">
-            {% for reserva in ultimas_reservas %}
-                <li>
-                    <strong>{{ reserva.nome_vaga_completo }}</strong> —
-                    {{ reserva.status|default:"desconhecido" }}
-                    {% if reserva.inicioReserva %}
-                        — <span class="data-reserva"
-                                data-date="{{ reserva.inicioReserva|date:'Y-m-d H:i:s' }}">
-                        </span>
-                    {% endif %}
-                </li>
-            {% empty %}
-                <li>Nenhuma atividade registrada.</li>
-            {% endfor %}
+<section class="bottom-grid">
+    <article class="last-reservations-card">
+        <div class="section-heading">
+            <div>
+                <h2>Últimas reservas</h2>
+                <p>Atividades mais recentes</p>
+            </div>
+            <a href="{% url 'reservas' %}" class="section-link">Ver todas <i class="bi bi-arrow-up-right"></i></a>
+        </div>
+        <ul class="latest-list">
+            <li>
+                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
+                <span class="reservation-info"><strong>ABC-1D23</strong><small>Vaga A-12 · hoje, 14:35</small></span>
+                <span class="reservation-status status-confirmada">Confirmada</span>
+            </li>
+            <li>
+                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
+                <span class="reservation-info"><strong>EFG-4H56</strong><small>Vaga B-04 · hoje, 14:18</small></span>
+                <span class="reservation-status status-pendente">Pendente</span>
+            </li>
+            <li>
+                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
+                <span class="reservation-info"><strong>IJK-7L89</strong><small>Vaga A-07 · hoje, 13:52</small></span>
+                <span class="reservation-status status-concluida">Concluída</span>
+            </li>
+            <li>
+                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
+                <span class="reservation-info"><strong>MNO-0P12</strong><small>Vaga C-02 · hoje, 13:25</small></span>
+                <span class="reservation-status status-cancelada">Cancelada</span>
+            </li>
         </ul>
+    </article>
 
+    <article class="chart-card permanence-card">
+        <div class="chart-heading">
+            <div>
+                <h2>Tempo médio de permanência</h2>
+                <p>Reservas concluídas</p>
+            </div>
+            <i class="bi bi-hourglass-split chart-icon"></i>
         </div>
-
+        <div class="permanence-value">1h <span>42min</span></div>
+        <div class="permanence-comparison"><i class="bi bi-arrow-down-right"></i> 8 min abaixo da semana anterior</div>
+        <div class="mini-bars" aria-label="Permanência média por dia">
+            <span style="height: 48%"></span><span style="height: 61%"></span><span style="height: 54%"></span>
+            <span style="height: 72%"></span><span style="height: 64%"></span><span style="height: 81%"></span>
+            <span style="height: 69%"></span>
+        </div>
+        <div class="mini-bars-labels"><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span></div>
+    </article>
+</section>
 {% endblock %}
+
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-// --- Formatação das Datas na Lista ---
-document.querySelectorAll('.data-reserva').forEach(el => {
-    const raw = el.dataset.date; 
-    if (!raw) return;
+document.addEventListener('DOMContentLoaded', function () {
+    const chartFont = { family: 'Poppins', size: 11 };
+    const green = '#00A676';
+    const darkGreen = '#046C4E';
+    const softGreen = 'rgba(0, 166, 118, 0.13)';
+    const gridColor = 'rgba(4, 108, 78, 0.08)';
 
-    const partes = raw.split(" ");
-    if (partes.length < 2) return;
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { displayColors: false, padding: 10, cornerRadius: 8 }
+        }
+    };
 
-    const [data, hora] = partes;
-    const [ano, mes, dia] = data.split("-").map(Number);
-    const [h, m, s] = hora.split(":").map(Number);
-
-    const d = new Date(ano, mes - 1, dia, h, m, s);
-    d.setHours(d.getHours() - 3);
-
-    el.textContent = d.toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-    });
-});
-
-/* === 1. Status das Reservas === */
-const elStatus = document.getElementById('statusReservasChart');
-if (elStatus) {
-    let hoje = Number("{{ reservas_hoje|default:0 }}") || 0;
-    let pendentes = Number("{{ reservas_pendentes|default:0 }}") || 0;
-    let canceladas = Number("{{ reservas_canceladas|default:0 }}") || 0;
-
-    console.log("Métricas recebidas:", { hoje, pendentes, canceladas });
-
-    const total = hoje + pendentes + canceladas;
-    
-    new Chart(elStatus, {
-        type: 'doughnut',
+    new Chart(document.getElementById('faturamentoChart'), {
+        type: 'line',
         data: {
-            labels: total > 0 ? ['Hoje', 'Pendentes', 'Canceladas'] : ['Sem Reservas'],
+            labels: ['17/09', '18/09', '19/09', '20/09', '21/09', '22/09', 'Hoje'],
             datasets: [{
-                data: total > 0 ? [hoje, pendentes, canceladas] : [1],
-                backgroundColor: total > 0 ? ['#00A676', '#046C4E', '#D32F2F'] : ['#E0E0E0'],
-                borderWidth: 0
+                label: 'Faturamento',
+                data: [380, 460, 420, 515, 440, 570, 695],
+                borderColor: darkGreen,
+                backgroundColor: softGreen,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: green,
+                pointBorderWidth: 2,
+                borderWidth: 2
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: { display: false }
+            ...commonOptions,
+            scales: {
+                x: { grid: { display: false }, ticks: { font: chartFont, color: '#7a8582' } },
+                y: { beginAtZero: true, grid: { color: gridColor }, ticks: { font: chartFont, color: '#7a8582', callback: value => 'R$ ' + value } }
             }
         }
     });
-}
 
-/* === 2. Ocupação das Vagas === */
-const vagasTotal = Number("{{ vagas_total }}") || 0;
-let vagasOcup = 0;
-
-{% for reserva in ultimas_reservas %}
-    {% if reserva.status == "ativa" or reserva.status == "confirmada" %}
-        vagasOcup++;
-    {% endif %}
-{% endfor %}
-
-if (vagasOcup === 0 && vagasTotal > 0) {
-    vagasOcup = Number("{{ vagas_ocupadas }}") || 0;
-}
-
-const vagasLivres = Math.max(0, vagasTotal - vagasOcup);
-
-const elOcupacao = document.getElementById('ocupacaoVagasChart');
-if (elOcupacao) {
-    new Chart(elOcupacao, {
+    new Chart(document.getElementById('reservasPorHorarioChart'), {
         type: 'bar',
         data: {
-            labels: ['Vagas'],
-            datasets: [
-                { label: 'Ocupadas', data: [vagasOcup], backgroundColor: '#046C4E', borderRadius: 10 },
-                { label: 'Livres', data: [vagasLivres], backgroundColor: '#00A676', borderRadius: 10 }
-            ]
-        },
-        options: { indexAxis: 'y' }
-    });
-}
-
-/* === 3. Reservas da Semana === */
-const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-let contagemSemana = [0, 0, 0, 0, 0, 0, 0];
-
-{% for r in ultimas_reservas %}
-    {% if r.inicioReserva %}
-    (function() {
-        const strData = "{{ r.inicioReserva }}";
-        const d = new Date(strData);
-        if (!isNaN(d.getTime())) {
-            contagemSemana[d.getDay()]++;
-        }
-    })();
-    {% endif %}
-{% endfor %}
-
-const elSemana = document.getElementById('reservasSemanaChart');
-if (elSemana) {
-    new Chart(elSemana, {
-        type: 'line',
-        data: {
-            labels: dias,
-            datasets: [{
-                label: 'Reservas',
-                data: contagemSemana,
-                borderColor: '#00A676',
-                backgroundColor: 'rgba(0,166,118,0.2)',
-                fill: true,
-                tension: 0.25
-            }]
-        }
-    });
-}
-
-/* === 4. Reservas por Horário (Hoje) === */
-let horarios = Array(24).fill(0);
-const hojeStr = new Date().toISOString().split("T")[0];
-
-{% for r in ultimas_reservas %}
-    {% if r.inicioReserva %}
-    (function(){
-        const strData = "{{ r.inicioReserva }}";
-        const d = new Date(strData);
-        if (!isNaN(d.getTime())) {
-            const dia = d.toISOString().split("T")[0];
-            if (dia === hojeStr) {
-                horarios[d.getHours()]++;
-            }
-        }
-    })();
-    {% endif %}
-{% endfor %}
-
-const elHorario = document.getElementById('reservasPorHorarioChart');
-if (elHorario) {
-    new Chart(elHorario, {
-        type: 'line',
-        data: {
-            labels: [...Array(24).keys()].map(h => `${String(h).padStart(2,'0')}h`),
-            datasets: [{
-                label: 'Reservas',
-                data: horarios,
-                borderColor: '#046C4E',
-                backgroundColor: 'rgba(4,108,78,0.25)',
-                fill: true,
-                tension: 0.3
-            }]
+            labels: ['8h', '10h', '12h', '14h', '16h', '18h', '20h'],
+            datasets: [{ label: 'Reservas', data: [2, 5, 8, 12, 9, 7, 3], backgroundColor: green, borderRadius: 6, barPercentage: 0.65 }]
         },
         options: {
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            ...commonOptions,
+            scales: {
+                x: { grid: { display: false }, ticks: { font: chartFont, color: '#7a8582' } },
+                y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 4, font: chartFont, color: '#7a8582' } }
+            }
         }
     });
-}
+
+    new Chart(document.getElementById('ocupacaoVagasChart'), {
+        type: 'doughnut',
+        data: { labels: ['Ocupadas', 'Disponíveis'], datasets: [{ data: [36, 14], backgroundColor: [darkGreen, '#dcefe8'], borderWidth: 0, hoverOffset: 3 }] },
+        options: { ...commonOptions, cutout: '76%' }
+    });
+
+    const statusData = {
+        hoje: { labels: ['Confirmadas', 'Pendentes', 'Concluídas', 'Canceladas'], values: [12, 6, 8, 2], colors: [green, '#f0b44d', '#5ca8a1', '#d96b68'] },
+        seteDias: { labels: ['Confirmadas', 'Pendentes', 'Concluídas', 'Canceladas'], values: [64, 18, 91, 11], colors: [green, '#f0b44d', '#5ca8a1', '#d96b68'] },
+        trintaDias: { labels: ['Confirmadas', 'Pendentes', 'Concluídas', 'Canceladas'], values: [248, 47, 318, 29], colors: [green, '#f0b44d', '#5ca8a1', '#d96b68'] }
+    };
+
+    const statusChart = new Chart(document.getElementById('statusReservasChart'), {
+        type: 'doughnut',
+        data: { labels: statusData.hoje.labels, datasets: [{ data: statusData.hoje.values, backgroundColor: statusData.hoje.colors, borderWidth: 0, hoverOffset: 3 }] },
+        options: { ...commonOptions, cutout: '74%' }
+    });
+
+    const legend = document.getElementById('statusLegend');
+    const totalElement = document.getElementById('statusTotal');
+    function updateStatus(period) {
+        const selected = statusData[period];
+        statusChart.data.labels = selected.labels;
+        statusChart.data.datasets[0].data = selected.values;
+        statusChart.update();
+        totalElement.textContent = selected.values.reduce((sum, value) => sum + value, 0);
+        legend.innerHTML = selected.labels.map((label, index) => `
+            <div class="status-row">
+                <span><i style="background:${selected.colors[index]}"></i>${label}</span>
+                <strong>${selected.values[index]}</strong>
+            </div>`).join('');
+    }
+    document.getElementById('statusPeriodFilter').addEventListener('change', event => updateStatus(event.target.value));
+    updateStatus('hoje');
+});
 </script>
 {% endblock %}

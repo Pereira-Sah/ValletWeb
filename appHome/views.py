@@ -176,26 +176,13 @@ def reservas(request):
 @login_required(login_url="/login/")
 def gestor(request):
     id_estacionamento = get_clean_id_estacionamento(request)
-    if id_estacionamento:
-        endpoint = f"/admin/{id_estacionamento}/dashboard"
-    else:
-        endpoint = "/admin/dashboard"
-
-    response = api_request("GET", endpoint, request)
-    dash_data = response.json() if response and response.status_code == 200 else {}
-
+    # A dashboard usa dados demonstrativos por enquanto.
+    # A integração com /admin/dashboard será retomada quando os indicadores
+    # reais estiverem alinhados com a API, evitando misturar formatos neste momento.
     context = {
         "user_name": request.session.get("user_name", "Visitante"),
         "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
         "fotoPerfil": request.session.get("fotoPerfil", ""),
-        "vagas_total": dash_data.get("vagas_total", 0),
-        "vagas_ocupadas": dash_data.get("vagas_ocupadas", 0),
-        "reservas_hoje": dash_data.get("reservas_hoje", 0),
-        "reservas_pendentes": dash_data.get("reservas_pendentes", 0),
-        "receita_mensal": dash_data.get("receita_mensal", "0,00"),
-        "reservas_canceladas": dash_data.get("reservas_canceladas", 0),
-        "receita_cancelada": dash_data.get("receita_cancelada", "0,00"),
-        "ultimas_reservas": dash_data.get("ultimas_reservas", []),
         "id_estacionamento_usado": id_estacionamento,
     }
 
