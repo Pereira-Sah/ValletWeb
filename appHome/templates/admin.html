@@ -13,7 +13,6 @@
         <h1 class="titulo-dashboard">Dashboard</h1>
         <p class="dashboard-subtitle">Acompanhe o movimento do estacionamento em um só lugar.</p>
     </div>
-    <span class="demo-badge"><i class="bi bi-bar-chart-line-fill"></i> Dados ilustrativos</span>
 </div>
 
 <section class="metric-grid" aria-label="Resumo do estacionamento">
@@ -22,8 +21,8 @@
             <span>Faturamento · 7 dias</span>
             <i class="bi bi-cash-coin"></i>
         </div>
-        <strong>R$ 3.480,00</strong>
-        <small class="metric-positive"><i class="bi bi-arrow-up-right"></i> 12,5% nesta semana</small>
+        <strong>R$ {{ faturamento_7_dias_total|default:"0,00" }}</strong>
+        <small class="metric-positive"><i class="bi bi-broadcast-pin"></i> últimos 7 dias</small>
     </article>
 
     <article class="metric-card">
@@ -31,17 +30,17 @@
             <span>Reservas hoje</span>
             <i class="bi bi-calendar2-check"></i>
         </div>
-        <strong>28</strong>
-        <small>6 aguardando confirmação</small>
+        <strong>{{ reservas_hoje|default:0 }}</strong>
+        <small>{{ reservas_pendentes|default:0 }} aguardando confirmação</small>
     </article>
 
     <article class="metric-card">
         <div class="metric-card-top">
-            <span>Ocupação atual</span>
+            <span>Vagas livres</span>
             <i class="bi bi-p-square-fill"></i>
         </div>
-        <strong>72%</strong>
-        <small>36 de 50 vagas ocupadas</small>
+        <strong id="vagasLivresPercentual">0%</strong>
+        <small>{{ vagas_livres }} de {{ vagas_total }} vagas disponíveis</small>
     </article>
 
     <article class="metric-card">
@@ -49,7 +48,7 @@
             <span>Permanência média</span>
             <i class="bi bi-stopwatch-fill"></i>
         </div>
-        <strong>1h 42min</strong>
+        <strong>{{ tempo_medio_permanencia|default:"—" }}</strong>
         <small>média das reservas concluídas</small>
     </article>
 </section>
@@ -61,7 +60,7 @@
                 <h2>Faturamento dos últimos 7 dias</h2>
                 <p>Valores recebidos por dia</p>
             </div>
-            <span class="chart-highlight">R$ 3.480,00</span>
+            <span class="chart-highlight">R$ {{ faturamento_7_dias_total|default:"0,00" }}</span>
         </div>
         <div class="chart-canvas chart-canvas-large">
             <canvas id="faturamentoChart"></canvas>
@@ -86,19 +85,32 @@
     <article class="chart-card occupancy-card">
         <div class="chart-heading">
             <div>
-                <h2>Ocupação das vagas</h2>
+                <h2>Disponibilidade das vagas</h2>
                 <p>Situação neste momento</p>
             </div>
-            <i class="bi bi-p-square chart-icon"></i>
         </div>
+
         <div class="occupancy-layout">
             <div class="donut-holder">
                 <canvas id="ocupacaoVagasChart"></canvas>
-                <div class="donut-center"><strong>72%</strong><span>ocupadas</span></div>
+                <div class="donut-center">
+                    <strong id="donutVagasPercentual">0%</strong>
+                    <span>livres</span>
+                </div>
             </div>
+
             <div class="occupancy-legend">
-                <div><span class="legend-dot occupied"></span><strong>36</strong><small>Ocupadas</small></div>
-                <div><span class="legend-dot available"></span><strong>14</strong><small>Disponíveis</small></div>
+                <div>
+                    <span class="legend-dot occupied"></span>
+                    <strong>{{ vagas_ocupadas }}</strong>
+                    <small>Ocupadas</small>
+                </div>
+
+                <div>
+                    <span class="legend-dot available"></span>
+                    <strong>{{ vagas_livres }}</strong>
+                    <small>Disponíveis</small>
+                </div>
             </div>
         </div>
     </article>
@@ -109,21 +121,26 @@
                 <h2>Status das reservas</h2>
                 <p>Distribuição por período</p>
             </div>
-            <select id="statusPeriodFilter" class="chart-filter" aria-label="Filtrar status das reservas">
-                <option value="hoje">Hoje</option>
-                <option value="seteDias">Últimos 7 dias</option>
-                <option value="trintaDias">Últimos 30 dias</option>
-            </select>
+
+            <div class="status-heading-actions">
+                <select id="statusPeriodFilter" class="chart-filter" aria-label="Filtrar status das reservas">
+                    <option value="geral">Dados atuais</option>
+                </select>
+            </div>
         </div>
+
         <div class="status-layout">
             <div class="status-donut-holder">
                 <canvas id="statusReservasChart"></canvas>
-                <div class="donut-center status-center"><strong id="statusTotal">28</strong><span>reservas</span></div>
+                <div class="donut-center status-center">
+                    <strong id="statusTotal">0</strong>
+                    <span>reservas</span>
+                </div>
             </div>
+
             <div class="status-legend" id="statusLegend"></div>
         </div>
     </article>
-
 </section>
 
 <section class="bottom-grid">
@@ -133,29 +150,44 @@
                 <h2>Últimas reservas</h2>
                 <p>Atividades mais recentes</p>
             </div>
-            <a href="{% url 'reservas' %}" class="section-link">Ver todas <i class="bi bi-arrow-up-right"></i></a>
+
+            <a href="{% url 'reservas' %}" class="section-link">
+                Ver todas <i class="bi bi-arrow-up-right"></i>
+            </a>
         </div>
+
         <ul class="latest-list">
-            <li>
-                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
-                <span class="reservation-info"><strong>ABC-1D23</strong><small>Vaga A-12 · hoje, 14:35</small></span>
-                <span class="reservation-status status-confirmada">Confirmada</span>
-            </li>
-            <li>
-                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
-                <span class="reservation-info"><strong>EFG-4H56</strong><small>Vaga B-04 · hoje, 14:18</small></span>
-                <span class="reservation-status status-pendente">Pendente</span>
-            </li>
-            <li>
-                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
-                <span class="reservation-info"><strong>IJK-7L89</strong><small>Vaga A-07 · hoje, 13:52</small></span>
-                <span class="reservation-status status-concluida">Concluída</span>
-            </li>
-            <li>
-                <span class="reservation-avatar"><i class="bi bi-car-front-fill"></i></span>
-                <span class="reservation-info"><strong>MNO-0P12</strong><small>Vaga C-02 · hoje, 13:25</small></span>
-                <span class="reservation-status status-cancelada">Cancelada</span>
-            </li>
+            {% for reserva in ultimas_reservas %}
+                <li>
+                    <span class="reservation-avatar">
+                        <i class="bi bi-car-front-fill"></i>
+                    </span>
+
+                    <span class="reservation-info">
+                        <strong>
+                            {% if reserva.vaga %}
+                                {{ reserva.vaga }}
+                            {% elif reserva.nome_vaga_completo %}
+                                {{ reserva.nome_vaga_completo }}
+                            {% else %}
+                                Vaga não informada
+                            {% endif %}
+                        </strong>
+
+                        <small>
+                            {{ reserva.usuario|default:"Usuário não identificado" }}
+                            ·
+                            {{ reserva.data|default:"Sem data" }}
+                        </small>
+                    </span>
+
+                    <span class="reservation-status">
+                        {{ reserva.status|default:"Desconhecido" }}
+                    </span>
+                </li>
+            {% empty %}
+                <li class="latest-empty">Nenhuma reserva encontrada.</li>
+            {% endfor %}
         </ul>
     </article>
 
@@ -165,25 +197,50 @@
                 <h2>Tempo médio de permanência</h2>
                 <p>Reservas concluídas</p>
             </div>
+
             <i class="bi bi-hourglass-split chart-icon"></i>
         </div>
-        <div class="permanence-value">1h <span>42min</span></div>
-        <div class="permanence-comparison"><i class="bi bi-arrow-down-right"></i> 8 min abaixo da semana anterior</div>
+
+        <div class="permanence-value">
+            {{ tempo_medio_permanencia|default:"—" }}
+        </div>
+
         <div class="mini-bars" aria-label="Permanência média por dia">
-            <span style="height: 48%"></span><span style="height: 61%"></span><span style="height: 54%"></span>
-            <span style="height: 72%"></span><span style="height: 64%"></span><span style="height: 81%"></span>
+            <span style="height: 48%"></span>
+            <span style="height: 61%"></span>
+            <span style="height: 54%"></span>
+            <span style="height: 72%"></span>
+            <span style="height: 64%"></span>
+            <span style="height: 81%"></span>
             <span style="height: 69%"></span>
         </div>
-        <div class="mini-bars-labels"><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span></div>
+
+        <div class="mini-bars-labels">
+            <span>Seg</span>
+            <span>Ter</span>
+            <span>Qua</span>
+            <span>Qui</span>
+            <span>Sex</span>
+            <span>Sáb</span>
+            <span>Dom</span>
+        </div>
     </article>
 </section>
 {% endblock %}
 
 {% block extra_scripts %}
+{{ faturamento_7_dias|json_script:"faturamento7DiasData" }}
+{{ status_reservas_json|json_script:"statusReservasData" }}
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const chartFont = { family: 'Poppins', size: 11 };
+    const chartFont = {
+        family: 'Poppins',
+        size: 11
+    };
+
     const green = '#00A676';
     const darkGreen = '#046C4E';
     const softGreen = 'rgba(0, 166, 118, 0.13)';
@@ -193,18 +250,34 @@ document.addEventListener('DOMContentLoaded', function () {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { display: false },
-            tooltip: { displayColors: false, padding: 10, cornerRadius: 8 }
+            legend: {
+                display: false
+            },
+            tooltip: {
+                displayColors: false,
+                padding: 10,
+                cornerRadius: 8
+            }
         }
     };
+
+    const faturamentoData = [
+        { dia: '17/09', valor: 180 },
+        { dia: '18/09', valor: 240 },
+        { dia: '19/09', valor: 210 },
+        { dia: '20/09', valor: 320 },
+        { dia: '21/09', valor: 280 },
+        { dia: '22/09', valor: 390 },
+        { dia: '23/09', valor: 450 }
+    ];
 
     new Chart(document.getElementById('faturamentoChart'), {
         type: 'line',
         data: {
-            labels: ['17/09', '18/09', '19/09', '20/09', '21/09', '22/09', 'Hoje'],
+            labels: faturamentoData.map(item => item.dia),
             datasets: [{
                 label: 'Faturamento',
-                data: [380, 460, 420, 515, 440, 570, 695],
+                data: faturamentoData.map(item => Number(item.valor) || 0),
                 borderColor: darkGreen,
                 backgroundColor: softGreen,
                 fill: true,
@@ -220,9 +293,33 @@ document.addEventListener('DOMContentLoaded', function () {
         options: {
             ...commonOptions,
             scales: {
-                x: { grid: { display: false }, ticks: { font: chartFont, color: '#7a8582' } },
-                y: { beginAtZero: true, grid: { color: gridColor }, ticks: { font: chartFont, color: '#7a8582', callback: value => 'R$ ' + value } }
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: chartFont,
+                        color: '#7a8582'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: gridColor
+                    },
+                    ticks: {
+                        font: chartFont,
+                        color: '#7a8582',
+                        callback: value => 'R$ ' + value
+                    }
+                }
             }
+        }
+    });
+
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
         }
     });
 
@@ -230,51 +327,146 @@ document.addEventListener('DOMContentLoaded', function () {
         type: 'bar',
         data: {
             labels: ['8h', '10h', '12h', '14h', '16h', '18h', '20h'],
-            datasets: [{ label: 'Reservas', data: [2, 5, 8, 12, 9, 7, 3], backgroundColor: green, borderRadius: 6, barPercentage: 0.65 }]
+            datasets: [{
+                label: 'Reservas',
+                data: [2, 5, 8, 12, 9, 7, 3],
+                backgroundColor: green,
+                borderRadius: 6,
+                barPercentage: 0.65
+            }]
         },
         options: {
             ...commonOptions,
             scales: {
-                x: { grid: { display: false }, ticks: { font: chartFont, color: '#7a8582' } },
-                y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 4, font: chartFont, color: '#7a8582' } }
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: chartFont,
+                        color: '#7a8582'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: gridColor
+                    },
+                    ticks: {
+                        stepSize: 4,
+                        font: chartFont,
+                        color: '#7a8582'
+                    }
+                }
             }
         }
     });
 
+    const vagasTotal =
+        Number("{{ vagas_total|default:0 }}") || 0;
+
+    const vagasOcupadas =
+        Number("{{ vagas_ocupadas|default:0 }}") || 0;
+
+    const vagasLivres =
+        Number("{{ vagas_livres|default:0 }}") || 0;
+
+    const ocupacaoVagasData =
+        vagasTotal > 0
+            ? [vagasOcupadas, vagasLivres]
+            : [1];
+
+    const percentualLivres =
+        vagasTotal > 0
+            ? Math.round((vagasLivres / vagasTotal) * 100)
+            : 0;
+
+    document.getElementById('vagasLivresPercentual').textContent =
+        `${percentualLivres}%`;
+
+    document.getElementById('donutVagasPercentual').textContent =
+        `${percentualLivres}%`;
+
     new Chart(document.getElementById('ocupacaoVagasChart'), {
         type: 'doughnut',
-        data: { labels: ['Ocupadas', 'Disponíveis'], datasets: [{ data: [36, 14], backgroundColor: [darkGreen, '#dcefe8'], borderWidth: 0, hoverOffset: 3 }] },
-        options: { ...commonOptions, cutout: '76%' }
+        data: {
+            labels: vagasTotal > 0
+                ? ['Ocupadas', 'Disponíveis']
+                : ['Sem dados'],
+
+            datasets: [{
+                data: ocupacaoVagasData,
+                backgroundColor: vagasTotal > 0
+                    ? ['#dcefe8', darkGreen]
+                    : ['#dcefe8'],
+                borderWidth: 0,
+                hoverOffset: 3
+            }]
+        },
+        options: {
+            ...commonOptions,
+            cutout: '76%'
+        }
     });
 
-    const statusData = {
-        hoje: { labels: ['Confirmadas', 'Pendentes', 'Concluídas', 'Canceladas'], values: [12, 6, 8, 2], colors: [green, '#f0b44d', '#5ca8a1', '#d96b68'] },
-        seteDias: { labels: ['Confirmadas', 'Pendentes', 'Concluídas', 'Canceladas'], values: [64, 18, 91, 11], colors: [green, '#f0b44d', '#5ca8a1', '#d96b68'] },
-        trintaDias: { labels: ['Confirmadas', 'Pendentes', 'Concluídas', 'Canceladas'], values: [248, 47, 318, 29], colors: [green, '#f0b44d', '#5ca8a1', '#d96b68'] }
-    };
+    const statusData = JSON.parse(
+        document.getElementById('statusReservasData').textContent
+    );
 
-    const statusChart = new Chart(document.getElementById('statusReservasChart'), {
-        type: 'doughnut',
-        data: { labels: statusData.hoje.labels, datasets: [{ data: statusData.hoje.values, backgroundColor: statusData.hoje.colors, borderWidth: 0, hoverOffset: 3 }] },
-        options: { ...commonOptions, cutout: '74%' }
-    });
+    const statusChart = new Chart(
+        document.getElementById('statusReservasChart'),
+        {
+            type: 'doughnut',
+            data: {
+                labels: statusData.geral.labels,
+                datasets: [{
+                    data: statusData.geral.values,
+                    backgroundColor: statusData.geral.colors,
+                    borderWidth: 0,
+                    hoverOffset: 3
+                }]
+            },
+            options: {
+                ...commonOptions,
+                cutout: '74%'
+            }
+        }
+    );
 
     const legend = document.getElementById('statusLegend');
     const totalElement = document.getElementById('statusTotal');
+
     function updateStatus(period) {
         const selected = statusData[period];
+
         statusChart.data.labels = selected.labels;
         statusChart.data.datasets[0].data = selected.values;
         statusChart.update();
-        totalElement.textContent = selected.values.reduce((sum, value) => sum + value, 0);
+
+        totalElement.textContent = selected.values.reduce(
+            (sum, value) => sum + value,
+            0
+        );
+
         legend.innerHTML = selected.labels.map((label, index) => `
             <div class="status-row">
-                <span><i style="background:${selected.colors[index]}"></i>${label}</span>
+                <span>
+                    <i style="background:${selected.colors[index]}"></i>
+                    ${label}
+                </span>
+
                 <strong>${selected.values[index]}</strong>
-            </div>`).join('');
+            </div>
+        `).join('');
     }
-    document.getElementById('statusPeriodFilter').addEventListener('change', event => updateStatus(event.target.value));
-    updateStatus('hoje');
+
+    document
+        .getElementById('statusPeriodFilter')
+        .addEventListener('change', event => {
+            updateStatus(event.target.value);
+        });
+
+    updateStatus('geral');
 });
 </script>
 {% endblock %}

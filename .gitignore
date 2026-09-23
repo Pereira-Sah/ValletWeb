@@ -62,6 +62,8 @@ media/
 
 # Django local files / Environment variables
 .env
+firebase/serviceAccountKey.json
+**/serviceAccountKey.json
 .venv
 env/
 venv/

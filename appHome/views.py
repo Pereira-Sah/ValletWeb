@@ -172,18 +172,80 @@ def reservas(request):
 
     return render(request, "reservas.html", context)
 
-
+@never_cache
 @login_required(login_url="/login/")
 def gestor(request):
     id_estacionamento = get_clean_id_estacionamento(request)
-    # A dashboard usa dados demonstrativos por enquanto.
-    # A integração com /admin/dashboard será retomada quando os indicadores
-    # reais estiverem alinhados com a API, evitando misturar formatos neste momento.
+    if id_estacionamento:
+        endpoint = f"/admin/{id_estacionamento}/dashboard"
+    else:
+        endpoint = "/admin/dashboard"
+
+    # Esta era a integração original da dashboard e volta a ser a fonte única
+    # das métricas reais do estacionamento.
+    dashboard_response = api_request("GET", endpoint, request)
+    if id_estacionamento and (not dashboard_response or dashboard_response.status_code != 200):
+        # Se a sessão tiver um ID antigo, deixa a API localizar o estacionamento
+        # pelo usuário autenticado, como fazia a versão original sem ID.
+        dashboard_response = api_request("GET", "/admin/dashboard", request)
+    dash_data = {}
+    dashboard_api_ok = False
+    dashboard_api_status = None
+
+    if dashboard_response is not None:
+        dashboard_api_status = dashboard_response.status_code
+    if dashboard_response and dashboard_response.status_code == 200:
+        resposta_dashboard = dashboard_response.json()
+        if isinstance(resposta_dashboard, dict):
+            dash_data = resposta_dashboard
+            dashboard_api_ok = True
+
+    vagas_total = max(0, int(dash_data.get("vagas_total") or 0))
+    vagas_ocupadas = max(0, min(int(dash_data.get("vagas_ocupadas") or 0), vagas_total))
+    vagas_livres = max(0, vagas_total - vagas_ocupadas)
+    vagas_percentual = round((vagas_ocupadas / vagas_total) * 100) if vagas_total else 0
+
+    faturamento_7_dias = dash_data.get("faturamento_7_dias") or []
+    faturamento_7_dias_total = sum(float(item.get("valor") or 0) for item in faturamento_7_dias if isinstance(item, dict))
+
+    # Mantém compatibilidade com a resposta original da API.
+    # A API antiga não devolve "status_reservas"; ela devolve estas métricas separadas.
+    status_labels = ["Hoje", "Ativas e pendentes", "Canceladas"]
+    status_values = [
+        int(dash_data.get("reservas_hoje") or 0),
+        int(dash_data.get("reservas_pendentes") or 0),
+        int(dash_data.get("reservas_canceladas") or 0),
+    ]
+    status_colors = ["#00A676", "#046C4E", "#D32F2F"]
+    status_data = {
+        "geral": {
+            "labels": status_labels,
+            "values": status_values,
+            "colors": status_colors,
+        }
+    }
+
     context = {
         "user_name": request.session.get("user_name", "Visitante"),
         "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
         "fotoPerfil": request.session.get("fotoPerfil", ""),
         "id_estacionamento_usado": id_estacionamento,
+        "vagas_total": vagas_total,
+        "vagas_ocupadas": vagas_ocupadas,
+        "vagas_livres": vagas_livres,
+        "vagas_percentual": vagas_percentual,
+        "vagas_api_ok": dashboard_api_ok,
+        "vagas_api_status": dashboard_api_status,
+        "dashboard_api_ok": dashboard_api_ok,
+        "dashboard_api_status": dashboard_api_status,
+        "faturamento_7_dias": faturamento_7_dias,
+        "faturamento_7_dias_total": f"{faturamento_7_dias_total:,.2f}".replace(".", ","),
+        "reservas_hoje": dash_data.get("reservas_hoje", 0),
+        "reservas_pendentes": dash_data.get("reservas_pendentes", 0),
+        "tempo_medio_permanencia": dash_data.get("tempo_medio_permanencia", "—"),
+        "ultimas_reservas": dash_data.get("ultimas_reservas", []),
+        "status_reservas_json": status_data,
+        "status_api_ok": dashboard_api_ok,
     }
 
     return render(request, "admin.html", context)

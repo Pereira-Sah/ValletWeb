@@ -251,7 +251,7 @@ body {
     border-bottom: 1px solid #eee;
 }
 
-/* ================= DASHBOARD COMPACTA ================ */
+/* ================= DASHBOARD  ================ */
 
 .main-content {
     padding: 28px 32px 34px;
@@ -497,8 +497,8 @@ body {
     border-radius: 50%;
 }
 
-.legend-dot.occupied { background: var(--verde-escuro); }
-.legend-dot.available { background: #dcefe8; }
+.legend-dot.occupied { background: #dcefe8; }
+.legend-dot.available { background: var(--verde-escuro); }
 
 .status-row {
     display: flex;
