@@ -17,7 +17,7 @@ from django.views.decorators.cache import never_cache
 
 User = get_user_model()
 
-API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
+API_BASE_URL = getattr(settings, "API_BASE_URL", "https://valletapi.onrender.com/")
 
 
 def api_request(method: str, endpoint: str, request_obj, data=None, params=None):
