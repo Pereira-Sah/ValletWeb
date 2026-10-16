@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block extra_head %}
+    {% endblock %}
+    <link rel="stylesheet" href="{% static 'admin.css' %}">
+    <link rel="icon" type="image/png" href="{% static 'assets/VALLET (2).png' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <title>
+        {% block tituloPagina %}{% endblock %}
+        {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
+            ({{ notificacoes_nao_lidas }})
+        {% endif %}
+    </title>
+</head>
+<body>   
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="avatar">
+                    {% if fotoPerfil %}
+                        <img src="{{ fotoPerfil }}" class="profile-pic">
+                    {% else %}
+                        <i class="bi bi-person-circle" style="font-size: 60px; color: #046C4E;"></i>
+                    {% endif %}
+                </div>
+                <h3>{{ user_name }}</h3>
+                <p>{{ user_cargo }}</p>
+            </div>
+
+            <nav class="menu">
+                <button><a href="{% url 'gestor' %}"> <i class="bi bi-house-door-fill"></i> Dashboard</a></button>
+                <button><a href="{% url 'reservas' %}"><i class="bi bi-calendar-check-fill"></i> Reservas </a></button>
+                <button>
+                    <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on">
+                        <i class="bi bi-bell-fill"></i> Notificações
+                        {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
+                            <span class="badge bg-danger ms-1" id="navbar-notification-count">{{ notificacoes_nao_lidas }}</span>
+                        {% endif %}
+                    </a>
+                </button>
+            </nav>
+
+            <a href="{% url 'logout' %}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Sair
+            </a>
+        </aside>
+
+        <!-- Conteúdo principal -->
+        <main class="main-content">
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        <div id="notification-toast-container"></div>
+    </div>
+
+    {% block extra_scripts %}
+    {% endblock %}
+</body>
+</html>

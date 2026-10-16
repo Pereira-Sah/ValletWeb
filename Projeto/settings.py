@@ -30,8 +30,15 @@ ALLOWED_HOSTS = [
     'valletweb.onrender.com',
     '.onrender.com',
 ]
+# settings.py
+TIME_ZONE = 'America/Sao_Paulo'  # Ou seu fuso horário
+USE_TZ = True
+ALLOWED_HOSTS = []
 
-
+# Configuração para agendamento de tarefas
+CRONJOBS = [
+    ('*/5 * * * *', 'appHome.management.commands.sincronizar_notificacoes.Command', '>> /tmp/cron.log'),
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -41,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'appHome',
 ]
 
@@ -67,6 +75,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'appHome.context_processors.notificacoes_globais',
             ],
         },
     },
@@ -74,7 +83,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Projeto.wsgi.application'
 
+ASGI_APPLICATION = 'Projeto.asgi.application'
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -110,8 +128,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
 USE_I18N = True
 
 USE_TZ = True
@@ -136,3 +152,11 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+AUTHENTICATION_BACKENDS = [
+    "appHome.auth_backend.FirebaseBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Firebase REST API key (used only if you want server-side sign-in with email+password)
+import os
+FIREBASE_API_KEY = os.environ.get("FIREBASE_API_KEY", "")

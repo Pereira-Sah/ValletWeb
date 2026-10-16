@@ -1,0 +1,127 @@
+<!-- 🔥 RESUMO DOS FILTROS ATIVOS -->
+{% if filtro_tipo or filtro_placa or filtro_data_inicio or filtro_data_fim or filtro_apenas_nao_lidas %}
+<div class="alert alert-info py-2 mb-3">
+    <small>
+        <strong>Filtros ativos:</strong>
+        {% if filtro_tipo %} 
+            {% for tipo_code, tipo_name in tipos_notificacao %}
+                {% if tipo_code == filtro_tipo %}
+                <span class="badge bg-primary me-1">
+                    Tipo: {{ tipo_name }}
+                </span>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {% if filtro_placa %}
+            <span class="badge bg-primary me-1">
+                Busca: "{{ filtro_placa }}"
+            </span>
+        {% endif %}
+        {% if filtro_data_inicio or filtro_data_fim %}
+            <span class="badge bg-primary me-1">
+                Período: {{ filtro_data_inicio|default:"Início" }} a {{ filtro_data_fim|default:"Hoje" }}
+            </span>
+        {% endif %}
+        {% if filtro_apenas_nao_lidas %}
+            <span class="badge bg-primary me-1">
+                Apenas não lidas
+            </span>
+        {% endif %}
+        <a href="{% url 'notificacoes_admin' %}" class="text-danger ms-2">
+            <i class="bi bi-x-circle"></i> Limpar
+        </a>
+    </small>
+</div>
+{% endif %}
+
+{% if notificacoes_com_vaga %}
+    {% for item in notificacoes_com_vaga %}
+    {% with notificacao=item.obj numero_vaga=item.numero_vaga %}
+    <div class="notificacao-item border-bottom pb-3 mb-3 {% if not notificacao.lida %}bg-light border-warning{% else %}bg-white{% endif %}" 
+         data-notificacao-id="{{ notificacao.id }}">
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center mb-2">
+                    <h6 class="mb-0 {% if not notificacao.lida %}fw-bold text-primary{% else %}text-muted{% endif %}">
+                        {{ notificacao.get_tipo_display }}
+                        {% if not notificacao.lida %}
+                        <span class="badge bg-danger ms-2">NOVA</span>
+                        {% else %}
+                        <span class="badge bg-success ms-2">LIDA</span>
+                        {% endif %}
+                    </h6>
+                    <div class="ms-auto">
+                        <small class="text-muted">
+                            {{ notificacao.timestamp|date:"d/m/Y H:i" }}
+                        </small>
+                    </div>
+                </div>
+                <p class="mb-2 {% if notificacao.lida %}text-muted{% endif %}">{{ notificacao.motivo }}</p>
+                <div class="text-muted small">
+                    <span class="me-3">
+                        <i class="bi bi-p-square-fill text-success"></i> 
+                        Vaga: {{ numero_vaga }}
+                    </span>
+                    {% if notificacao.placa %}
+                    <span class="me-3">
+                        <i class="bi bi-car-front-fill text-info"></i> 
+                        Placa: {{ notificacao.placa }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="ms-3">
+                <!-- 🔥 BOTÕES DE AÇÃO INDIVIDUAL -->
+                <div class="btn-group btn-group-sm">
+                    {% if not notificacao.lida %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="marcar_como_lida">
+                        <input type="hidden" name="notificacao_id" value="{{ notificacao.id }}">
+                        <button type="submit" class="btn btn-outline-success" 
+                                title="Marcar como lida">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                    </form>
+                    {% else %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="marcar_como_nao_lida">
+                        <input type="hidden" name="notificacao_id" value="{{ notificacao.id }}">
+                        <button type="submit" class="btn btn-outline-warning" 
+                                title="Marcar como não lida">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <form method="post" class="d-inline" 
+                          onsubmit="return confirm('Tem certeza que deseja excluir esta notificação?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="excluir">
+                        <input type="hidden" name="notificacao_id" value="{{ notificacao.id }}">
+                        <button type="submit" class="btn btn-outline-danger" 
+                                title="Excluir notificação">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+{% else %}
+    <div class="text-center py-4">
+        <i class="bi bi-bell-slash display-4 text-muted"></i>
+        <h5 class="mt-3 text-muted">Nenhuma notificação encontrada</h5>
+        <p class="text-muted">
+            {% if filtro_tipo or filtro_placa or filtro_data_inicio or filtro_data_fim %}
+                Tente ajustar os filtros ou 
+                <a href="{% url 'notificacoes_admin' %}">limpar todos os filtros</a>.
+            {% else %}
+                As notificações do sistema aparecerão aqui.
+            {% endif %}
+        </p>
+    </div>
+{% endif %}

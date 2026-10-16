@@ -15,16 +15,20 @@ except Exception as e:
 	print(f"[FALHA] Erro ao carregar credenciais: {e}")
 	raise
 
+# --- CORREÇÃO: Garantir que o app seja inicializado apenas uma vez ---
 try:
+	# Tenta obter o app padrão, se já estiver inicializado
 	firebase_app = firebase_admin.get_app()
 	print("[INFO] App Firebase já existia, reaproveitando.")
 except ValueError:
+	# Se não estiver inicializado, inicializa
 	try:
 		firebase_app = firebase_admin.initialize_app(cred)
 		print("[SUCESSO] Firebase inicializado com sucesso.")
 	except Exception as e:
 		print(f"[FALHA] Erro ao inicializar Firebase: {e}")
 		raise
+# --------------------------------------------------------------------
 
 try:
 	db = firestore.client()
@@ -32,6 +36,11 @@ try:
 except Exception as e:
 	print(f"[FALHA] Não foi possível conectar ao Firestore: {e}")
 	raise
+
+# WEB API key usada pelo Firebase client/REST (opcional)
+# Você pode preencher esta chave aqui ou exportar `FIREBASE_API_KEY` como variável de ambiente.
+# Exemplo (obtida no Firebase Console, Project settings -> Your apps -> config):
+WEB_API_KEY = "AIzaSyB0IRYXyYN5HDqxOgwT2aPju3TQKhg_9nM"
 
 def fetch_collection(collection_name: str) -> list:
 	print(f"[DEBUG] Buscando documentos da coleção: {collection_name}")
