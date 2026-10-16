@@ -33,7 +33,6 @@ ALLOWED_HOSTS = [
 # settings.py
 TIME_ZONE = 'America/Sao_Paulo'  # Ou seu fuso horário
 USE_TZ = True
-ALLOWED_HOSTS = []
 
 # Configuração para agendamento de tarefas
 CRONJOBS = [
