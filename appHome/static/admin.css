@@ -24,32 +24,222 @@ body {
 
 /* ================= SIDEBAR ================= */
 
+/* Barra lateral — nova paleta Vallet */
 .sidebar {
+    --menu-principal: #3B5042;
+    --menu-secundaria: #637365;
+    --menu-apoio: #97A697;
+    --menu-claro: #CBD9C5;
+    --menu-texto: #F5F5F5;
+
+    flex: 0 0 250px;
     width: 250px;
-    background: #ffffff;
-    padding: 32px 18px;
+    padding: 28px 18px 22px;
+
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    border-right: 1px solid #e6e6e6;
-    box-shadow: 4px 0 18px rgba(0,0,0,0.06);
+    gap: 24px;
+
+    background: var(--menu-principal);
+    border-right: 1px solid var(--menu-secundaria);
+    box-shadow: none;
+
+    color: var(--menu-texto);
+    font-family: "Poppins", sans-serif;
+    line-height: 1.4;
+    overflow-y: auto;
 }
 
-.sidebar-header {
+/* Perfil */
+.sidebar .sidebar-header {
+    flex-shrink: 0;
     text-align: center;
-    color: var(--verde-escuro);
+    color: var(--menu-texto);
 }
 
-.sidebar-header h3 {
-    margin-top: 10px;
-    font-size: 1.2rem;
-    font-weight: 700;
+.sidebar .avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+
+    background: var(--menu-secundaria);
+    border: 3px solid var(--menu-apoio);
+    border-radius: 50%;
+    overflow: hidden;
 }
 
-.sidebar-header p {
-    margin-top: -4px;
+.sidebar .avatar > i {
+    font-size: 56px;
+    line-height: 1;
+    color: var(--menu-claro);
+}
+
+.sidebar .profile-pic {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sidebar .sidebar-header h3 {
+    margin: 12px 0 5px;
+    color: var(--menu-texto);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.sidebar .sidebar-header p {
+    margin: 0;
+    color: var(--menu-claro);
     font-size: 0.85rem;
-    opacity: 0.7;
+    opacity: 1;
+}
+
+/* Navegação */
+.sidebar .menu {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 8px;
+    margin: 0;
+}
+
+.sidebar .menu a {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 46px;
+    padding: 0 12px;
+    gap: 10px;
+
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+
+    color: var(--menu-texto);
+    font-family: "Poppins", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-decoration: none;
+
+    transition:
+        background-color 0.2s,
+        color 0.2s,
+        border-color 0.2s;
+}
+
+.sidebar .menu a::before {
+    content: none;
+}
+
+.sidebar .menu a > i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 20px;
+    width: 20px;
+
+    color: var(--menu-claro);
+    font-size: 1.1rem;
+    line-height: 1;
+
+    transition: color 0.2s;
+}
+
+.sidebar .menu a:hover {
+    background: var(--menu-secundaria);
+    border-color: var(--menu-secundaria);
+    color: white;
+}
+
+.sidebar .menu a:hover i {
+    color: white;
+}
+
+/* Página selecionada */
+.sidebar .menu a[aria-current="page"] {
+    background: var(--menu-claro);
+    border-color: var(--menu-claro);
+    color: var(--menu-principal);
+    font-weight: 600;
+}
+
+.sidebar .menu a[aria-current="page"] i {
+    color: var(--menu-principal);
+}
+
+/* Contador de notificações */
+.sidebar .menu .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 23px;
+    height: 23px;
+    margin-left: auto;
+    padding: 0 6px;
+
+    background: var(--menu-claro);
+    border-radius: 8px;
+    color: var(--menu-principal);
+
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.sidebar .menu a[aria-current="page"] .badge {
+    background: var(--menu-principal);
+    color: var(--menu-texto);
+}
+
+/* Sair */
+.sidebar .logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap: 8px;
+
+    min-height: 44px;
+    margin-top: 0;
+    padding: 10px 12px;
+
+    background: transparent;
+    border: 1px solid var(--menu-apoio);
+    border-radius: 10px;
+    color: var(--menu-texto);
+
+    font-family: "Poppins", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-decoration: none;
+
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
+}
+
+.sidebar .logout-btn:hover {
+    background: var(--menu-secundaria);
+    border-color: var(--menu-claro);
+    color: white;
+}
+
+/* Navegação pelo teclado */
+.sidebar .menu a:focus-visible,
+.sidebar .logout-btn:focus-visible {
+    outline: 2px solid var(--menu-claro);
+    outline-offset: 3px;
 }
 
 .avatar {
@@ -139,24 +329,6 @@ body {
     border-radius: 12px;
     margin-left: auto;
 }
-
-.logout-btn {
-    margin-top: 20px;
-    background: #ffffff;
-    color: #D32F2F;
-    border: 1px solid #D32F2F;
-    padding: 12px;
-    border-radius: 12px;
-    text-align: center;
-    font-weight: 600;
-    transition: .25s ease;
-}
-
-.logout-btn:hover {
-    background: #D32F2F;
-    color: white;
-}
-
 
 /* ================= MAIN ================= */
 
