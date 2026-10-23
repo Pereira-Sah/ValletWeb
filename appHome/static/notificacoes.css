@@ -1,8 +1,10 @@
-/* notificacoes.css - Estilos simplificados para página de notificações */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 /* Container principal */
 .notificacoes-container {
     min-height: calc(100vh - 70px);
+    font-family: "Poppins", sans-serif;
+    font-size: 0.85rem;
 }
 
 /* Cabeçalho */
@@ -10,20 +12,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #e1e5eb;
 }
 
-.filtrosButton{
+.filtrosButton {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: nowrap;
     flex-direction: row;
 }
+
 .page-title {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: var(--verde-escuro);
     margin: 0;
@@ -42,19 +45,19 @@
     font-weight: 500;
 }
 
-/* Filtros em linha */
+/* Filtros */
 .filtros-linha {
     background: white;
-    padding: 8px 16px;
+    padding: 12px 16px;
     border-radius: 12px;
-    margin-bottom: 25px;
+    margin-bottom: 16px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .filtros-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
+    gap: 12px;
     align-items: end;
 }
 
@@ -64,19 +67,20 @@
 
 .filtro-label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .filtro-input,
 .filtro-select {
-    width:90%;
-    padding: 10px 12px;
+    width: 90%;
+    padding: 8px 10px;
     border: 1px solid #e1e5eb;
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     transition: border-color 0.2s;
+    font-family: inherit;
 }
 
 .filtro-input:focus,
@@ -89,17 +93,17 @@
 .filtro-check {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-top: 8px;
 }
 
-/* Estilização personalizada do checkbox */
+/* Checkbox */
 .filtro-check input[type="checkbox"] {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border: 2px solid var(--verde-escuro);
     border-radius: 5px;
     background-color: var(--fundo);
@@ -116,13 +120,13 @@
 }
 
 .filtro-check input[type="checkbox"]:checked::after {
-    content: '✓';
+    content: "✓";
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     color: white;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: bold;
 }
 
@@ -139,20 +143,21 @@
     outline: none;
     box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
 }
+
 .filtro-check label {
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
 }
 
-/* Botões de ação */
+/* Botões dos filtros */
 .filtros-botoes {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 .btn-filtro {
-    padding: 10px 20px;
+    padding: 7px 12px;
     border: none;
     border-radius: 8px;
     font-weight: 500;
@@ -160,7 +165,9 @@
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-family: inherit;
 }
 
 .btn-primary {
@@ -185,28 +192,33 @@
 .btn-success {
     background-color: #28a745;
     color: white;
-    padding: 8px 16px;
-    font-size: 0.9rem;
+    padding: 7px 12px;
+    font-size: 0.8rem;
 }
 
 .btn-success:hover {
     background-color: var(--verde-medio);
 }
 
-/* Cartões de notificação */
+/* Lista de notificações */
 .notificacoes-grid {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 }
 
+/* Cards */
 .notificacao-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
     background: white;
     border-radius: 12px;
-    padding: 20px;
+    padding: 12px 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border-left: 4px solid var(--verde-escuro);
     transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeIn 0.3s ease-out;
 }
 
 .notificacao-card:hover {
@@ -224,70 +236,107 @@
 }
 
 .notificacao-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 15px;
+    display: contents;
 }
 
 .notificacao-tipo {
     display: inline-block;
-    padding: 4px 12px;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    padding: 0;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
 }
 
-.tipo-alerta { background-color: #fff3cd; color: #856404; }
-.tipo-info { background-color: #d1ecf1; color: #0c5460; }
-.tipo-sucesso { background-color: #d4edda; color: #155724; }
-.tipo-erro { background-color: #f8d7da; color: #721c24; }
+.tipo-alerta {
+    background-color: #fff3cd;
+    color: #856404;
+}
 
+.tipo-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.tipo-sucesso {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.tipo-erro {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Ações do card */
 .notificacao-acoes {
     display: flex;
-    gap: 8px;
+    grid-column: 2;
+    grid-row: 1 / 4;
+    align-self: start;
+    gap: 6px;
+}
+
+.notificacao-acoes form {
+    margin: 0;
 }
 
 .btn-acao {
-    padding: 6px 12px;
+    padding: 5px 8px;
     border: none;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 5px;
     transition: all 0.2s;
+    font-family: inherit;
 }
 
 .btn-acao:hover {
     transform: scale(1.05);
 }
 
+/* Conteúdo do card */
 .notificacao-conteudo {
-    margin-bottom: 15px;
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .notificacao-titulo {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #2c3e50;
-    margin-bottom: 10px;
+    margin: 0 0 4px;
+    line-height: 1.4;
+}
+
+.notificacao-conteudo p {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
 }
 
 .notificacao-detalhes {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 10px;
     color: #6c757d;
-    font-size: 0.9rem;
+    font-size: 0.78rem;
 }
 
 .detalhe-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 
 .detalhe-item i {
@@ -295,34 +344,40 @@
     width: 16px;
 }
 
+/* Data e estado de leitura */
 .notificacao-footer {
     display: flex;
-    justify-content: space-between;
+    grid-column: 1;
+    grid-row: 3;
+    justify-content: flex-start;
     align-items: center;
-    padding-top: 15px;
-    border-top: 1px solid #f0f0f0;
-    font-size: 0.85rem;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding-top: 0;
+    border-top: 0;
+    font-size: 0.75rem;
     color: #adb5bd;
 }
 
 .notificacao-data {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 /* Mensagens */
 .mensagens-container {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .alert {
-    padding: 12px 16px;
+    padding: 9px 12px;
     border-radius: 8px;
     margin-bottom: 10px;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-size: 0.8rem;
 }
 
 .alert-success {
@@ -352,20 +407,26 @@
 /* Estado vazio */
 .empty-state {
     text-align: center;
-    padding: 50px 20px;
+    padding: 28px 16px;
     color: #6c757d;
 }
 
 .empty-state i {
-    font-size: 48px;
+    font-size: 32px;
     color: #dee2e6;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .empty-state h4 {
     font-weight: 600;
-    margin-bottom: 10px;
     color: #495057;
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.8rem;
 }
 
 /* Responsividade */
@@ -379,32 +440,19 @@
     .notificacoes-container {
         padding: 15px;
     }
-    
+
     .filtros-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .page-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
     }
-    
-    .notificacao-header {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .notificacao-acoes {
-        align-self: flex-start;
-    }
-    
+
     .notificacao-detalhes {
         flex-direction: column;
         gap: 10px;
     }
-}
-
-.notificacao-card {
-    animation: fadeIn 0.3s ease-out;
 }

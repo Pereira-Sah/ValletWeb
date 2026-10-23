@@ -295,8 +295,24 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
 
         response = api_request("GET", "notificacoes/", self.request, params=params)
 
-        api_data = response.json() if (response and response.status_code == 200) else {}
-
+        if response is None:
+            print("[NOTIFICAÇÕES] Não foi possível conectar à API.")
+            api_data = {}
+        elif response.status_code != 200:
+            print(
+                f"[NOTIFICAÇÕES] A API respondeu com HTTP "
+                f"{response.status_code}."
+            )
+            api_data = {}
+        else:
+            api_data = response.json()
+            print(
+                "[NOTIFICAÇÕES]",
+                f"Estacionamento da sessão: {id_estacionamento}",
+                f"Estacionamento da API: {api_data.get('id_estacionamento')}",
+                f"Quantidade retornada: {len(api_data.get('notificacoes', []))}",
+            )
+            
         return {
             "user_name": self.request.session.get("user_name", "Visitante"),
             "user_cargo": self.request.session.get("user_cargo", "Cargo Desconhecido"),
