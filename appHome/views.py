@@ -114,7 +114,7 @@ def firebase_login(request):
             else:
                 request.session["id_estacionamento"] = ""
 
-        redirect_url = "/gestor/" if is_gestor else "/"
+        redirect_url = "/gestor/" if is_gestor else "/login/"
 
         return JsonResponse({"ok": True, "uid": uid, "email": email, "redirect": redirect_url})
 
