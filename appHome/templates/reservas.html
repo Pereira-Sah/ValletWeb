@@ -4,125 +4,224 @@
 {% block tituloPagina %}Reservas{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'reservas.css' %}">
+<link rel="stylesheet" href="{% static 'reservas.css' %}?v=20261023-3">
 {% endblock %}
 
 {% block content %}
 <div class="reservas-container">
 
-  <div class="page-header">
-    <h1 class="page-title"><i class="bi bi-calendar-check"></i> Reservas</h1>
-  </div>
-
-  <!-- FILTROS -->
-  <form method="get" class="filtros-box" novalidate>
-    <div class="filtros-grid">
-      <div class="filtro-item">
-        <label>Placa</label>
-        <input type="text" name="placa" value="{{ filtro_placa }}" placeholder="ABC-1234">
-      </div>
-      <div class="filtro-item">
-        <label>Usuário</label>
-        <input type="text" name="usuario" value="{{ filtro_usuario }}" placeholder="Nome do motorista">
-      </div>
-      <div class="filtro-item">
-        <label>Data início</label>
-        <input type="date" name="data_inicio" value="{{ filtro_data_inicio }}">
-      </div>
-      <div class="filtro-item">
-        <label>Data fim</label>
-        <input type="date" name="data_fim" value="{{ filtro_data_fim }}">
-      </div>
-      <div class="filtro-item">
-        <label>Status</label>
-        <select name="status">
-          <option value="">Todos</option>
-          <option value="ativa" {% if filtro_status == "ativa" %}selected{% endif %}>Ativa</option>
-          <option value="cancelada" {% if filtro_status == "cancelada" %}selected{% endif %}>Cancelada</option>
-          <option value="concluida" {% if filtro_status == "concluida" %}selected{% endif %}>Concluída</option>
-        </select>
-      </div>
-
-          <div class="filtros-botoes">
-      <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Aplicar</button>
-      <a href="{% url 'reservas' %}" class="btn btn-secondary">Limpar</a>
-    </div>
+    <div class="page-header">
+        <h1 class="page-title">
+            Reservas
+        </h1>
     </div>
 
-  </form>
-
-  <!-- LISTA -->
-  <div class="reservas-grid">
-    {% if reservas %}
-      {% for r in reservas %}
-        <article class="reserva-card">
-
-          <header class="reserva-top">
-            <div class="info-basica">
-             <img src="{{ r.foto }}" alt="Foto do motorista" class="foto-motorista">
-
-             <div class="info-basica-nome-tel">
-              <h3>{{ r.usuario|default:"Usuário não informado" }}</h3>
-              <span class="sub">{{ r.telefone|default:"Sem telefone" }}</span>
-             </div>
-
+    <form method="get" class="filtros-box">
+        <div class="filtros-grid">
+            <div class="filtro-item">
+                <label for="filtro-placa">Placa</label>
+                <input
+                    id="filtro-placa"
+                    type="text"
+                    name="placa"
+                    value="{{ filtro_placa }}"
+                    placeholder="ABC-1234">
             </div>
 
-            <span class="status status-{{ r.status|default:'desconhecida' }}">{{ r.status|default:'desconhecida'|capfirst }}</span>
-          </header>
+            <div class="filtro-item">
+                <label for="filtro-usuario">Usuário</label>
+                <input
+                    id="filtro-usuario"
+                    type="text"
+                    name="usuario"
+                    value="{{ filtro_usuario }}"
+                    placeholder="Nome do motorista">
+            </div>
 
-          <!-- Blocos lado a lado -->
-          <section class="reserva-info">
-            <div class="info-block">
-              <i class="bi bi-p-square"></i>
-              <div>
-                <span class="label">Vaga</span>
-                <strong>{{ r.numero_vaga|default:"—" }}</strong>
-              </div>
+            <div class="filtro-item">
+                <label for="filtro-inicio">Data início</label>
+                <input
+                    id="filtro-inicio"
+                    type="date"
+                    name="data_inicio"
+                    value="{{ filtro_data_inicio }}">
             </div>
-            <div class="info-block">
-              <i class="bi bi-car-front"></i>
-              <div>
-                <span class="label">Placa</span>
-                <strong>{{ r.placa|default:"Não informada" }}</strong>
-              </div>
-            </div>
-            <div class="info-block">
-              <i class="bi bi-calendar-event"></i>
-              <div>
-                <span class="label">Início</span>
-                <strong>{{ r.inicio|default:"—" }}</strong>
-              </div>
-            </div>
-            <div class="info-block">
-              <i class="bi bi-calendar2-event"></i>
-              <div>
-                <span class="label">Fim</span>
-                <strong>{{ r.fim|default:"—" }}</strong>
-              </div>
-            </div>
-          </section>
 
-          <footer class="reserva-footer">
-            {% if r.telefone %}
-              <a class="btn-whats"
-                href="https://wa.me/55{{ r.telefone }}?text=Ol%C3%A1%21%20Sou%20o%20gestor%20do%20estacionamento.%20Gostaria%20de%20falar%20sobre%20a%20sua%20reserva."
-                 target="_blank" rel="noopener">
-                <i class="bi bi-whatsapp"></i> Contatar Motorista
-              </a>
-            {% else %}
-              <span class="sem-whats">Telefone não disponível</span>
-            {% endif %}
-          </footer>
+            <div class="filtro-item">
+                <label for="filtro-fim">Data fim</label>
+                <input
+                    id="filtro-fim"
+                    type="date"
+                    name="data_fim"
+                    value="{{ filtro_data_fim }}">
+            </div>
 
-        </article>
-      {% endfor %}
-    {% else %}
-      <div class="empty">
-        <i class="bi bi-calendar-x"></i>
-        <p>Nenhuma reserva encontrada.</p>
-      </div>
+            <div class="filtro-item">
+                <label for="filtro-status">Status</label>
+                <select id="filtro-status" name="status">
+                    <option value="">Todos</option>
+
+                    <option value="ativa"
+                        {% if filtro_status == "ativa" %}selected{% endif %}>
+                        Ativa
+                    </option>
+
+                    <option value="cancelada"
+                        {% if filtro_status == "cancelada" %}selected{% endif %}>
+                        Cancelada
+                    </option>
+
+                    <option value="concluida"
+                        {% if filtro_status == "concluida" %}selected{% endif %}>
+                        Concluída
+                    </option>
+                </select>
+            </div>
+
+            <div class="filtros-botoes">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-funnel"></i>
+                    Aplicar
+                </button>
+
+                <a href="{% url 'reservas' %}" class="btn btn-secondary">
+                    Limpar
+                </a>
+            </div>
+        </div>
+    </form>
+
+    {% if erro_reservas %}
+    <p class="reservas-erro" role="alert">
+        {{ erro_reservas }}
+    </p>
     {% endif %}
-  </div>
+
+    <div class="reservas-grid">
+        {% if reservas %}
+            {% for r in reservas %}
+            <article class="reserva-card">
+                <header class="reserva-top">
+                    <div class="info-basica">
+                        {% if r.foto and r.foto != "/static/default_profile.png" %}
+                        <img
+                            src="{{ r.foto }}"
+                            alt="Foto do motorista"
+                            class="foto-motorista"
+                            loading="lazy">
+                        {% else %}
+                        <span class="foto-motorista foto-placeholder"
+                              aria-hidden="true">
+                            <i class="bi bi-person"></i>
+                        </span>
+                        {% endif %}
+
+                        <div class="info-basica-nome-tel">
+                            <h3>
+                                {{ r.usuario|default:"Usuário não informado" }}
+                            </h3>
+
+                            <span class="sub">
+                                {{ r.telefone|default:"Sem telefone" }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <span class="status status-{{ r.status|default:'desconhecida' }}">
+                        {{ r.status|default:'desconhecida'|capfirst }}
+                    </span>
+                </header>
+
+                <section class="reserva-info">
+                    <div class="info-block">
+                        <i class="bi bi-p-square"></i>
+                        <div>
+                            <span class="label">Vaga</span>
+                            <strong>{{ r.numero_vaga|default:"—" }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="info-block">
+                        <i class="bi bi-car-front"></i>
+                        <div>
+                            <span class="label">Placa</span>
+                            <strong>{{ r.placa|default:"Não informada" }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="info-block">
+                        <i class="bi bi-calendar-event"></i>
+                        <div>
+                            <span class="label">Início</span>
+                            <strong>{{ r.inicio|default:"—" }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="info-block">
+                        <i class="bi bi-calendar2-event"></i>
+                        <div>
+                            <span class="label">Fim</span>
+                            <strong>{{ r.fim|default:"—" }}</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <footer class="reserva-footer">
+                    {% if r.telefone %}
+                    <a class="btn-whats"
+                       href="https://wa.me/55{{ r.telefone }}?text=Ol%C3%A1%21%20Sou%20o%20gestor%20do%20estacionamento.%20Gostaria%20de%20falar%20sobre%20a%20sua%20reserva."
+                       target="_blank"
+                       rel="noopener">
+                        <i class="bi bi-whatsapp"></i>
+                        Contatar Motorista
+                    </a>
+                    {% else %}
+                    <span class="sem-whats">
+                        Telefone não disponível
+                    </span>
+                    {% endif %}
+                </footer>
+            </article>
+            {% endfor %}
+
+        {% elif not erro_reservas %}
+            <div class="empty">
+                <i class="bi bi-calendar-x"></i>
+                <p>Nenhuma reserva encontrada.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if reservas or url_anterior or url_proxima %}
+    <nav class="reservas-paginacao"
+         aria-label="Paginação de reservas">
+
+        {% if url_anterior %}
+        <a href="{{ url_anterior }}" class="pagina-link">
+            <i class="bi bi-chevron-left"></i>
+            Anterior
+        </a>
+        {% else %}
+        <span class="pagina-link desabilitada" aria-disabled="true">
+            Anterior
+        </span>
+        {% endif %}
+
+        <span class="pagina-atual" aria-current="page">
+            Página {{ pagina }}
+        </span>
+
+        {% if url_proxima %}
+        <a href="{{ url_proxima }}" class="pagina-link">
+            Próxima
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        {% else %}
+        <span class="pagina-link desabilitada" aria-disabled="true">
+            Próxima
+        </span>
+        {% endif %}
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

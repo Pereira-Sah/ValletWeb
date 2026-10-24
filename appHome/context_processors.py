@@ -3,7 +3,10 @@ from django.conf import settings
 
 
 def notificacoes_globais(request):
-    contexto = {"notificacoes_nao_lidas": 0}
+    contexto = {
+        "notificacoes_nao_lidas": 0,
+        "nome_estacionamento": "",
+    }
 
     if not request.user.is_authenticated:
         return contexto
@@ -17,34 +20,70 @@ def notificacoes_globais(request):
         settings,
         "API_BASE_URL",
         "http://127.0.0.1:8000"
-    )
+    ).rstrip("/")
+
+    id_estacionamento = str(
+        request.session.get("id_estacionamento") or ""
+    ).strip()
 
     headers = {
         "Authorization": f"Bearer {token}",
-        "X-Estacionamento-ID": str(
-            request.session.get("id_estacionamento") or ""
-        ).strip(),
+        "X-Estacionamento-ID": id_estacionamento,
     }
 
     try:
         resposta = requests.get(
-            f"{base_url.rstrip('/')}/notificacoes/",
+            f"{base_url}/notificacoes/",
             headers=headers,
             timeout=10,
         )
 
         if resposta.status_code == 200:
             dados = resposta.json()
+
             contexto["notificacoes_nao_lidas"] = dados.get(
                 "nao_lidas", 0
             )
+
+            if not id_estacionamento:
+                id_estacionamento = str(
+                    dados.get("id_estacionamento") or ""
+                ).strip()
         else:
             print(
                 "[CONTADOR NOTIFICAÇÕES] "
-                f"A API respondeu com HTTP {resposta.status_code}."
+                f"HTTP {resposta.status_code}"
             )
 
     except (requests.RequestException, ValueError) as erro:
-        print(f"[CONTADOR NOTIFICAÇÕES] Falha na consulta: {erro}")
+        print(
+            "[CONTADOR NOTIFICAÇÕES] "
+            f"Falha na consulta: {erro}"
+        )
+
+    if id_estacionamento:
+        try:
+            resposta = requests.get(
+                f"{base_url}/estacionamento/"
+                f"buscar_estacionamento/{id_estacionamento}",
+                headers=headers,
+                timeout=10,
+            )
+
+            if resposta.status_code == 200:
+                contexto["nome_estacionamento"] = (
+                    resposta.json().get("nome") or ""
+                )
+            else:
+                print(
+                    "[SIDEBAR ESTACIONAMENTO] "
+                    f"HTTP {resposta.status_code}"
+                )
+
+        except (requests.RequestException, ValueError) as erro:
+            print(
+                "[SIDEBAR ESTACIONAMENTO] "
+                f"Falha na consulta: {erro}"
+            )
 
     return contexto

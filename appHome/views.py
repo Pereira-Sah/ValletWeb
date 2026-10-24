@@ -101,7 +101,11 @@ def firebase_login(request):
             if tipo_user in ["admin", "gestor", "administrador", "superadmin"]:
                 is_gestor = True
 
-            estac_res = api_request("GET", "usuarios/listar_estacionamentos_usuario", request)
+            estac_res = api_request(
+                "GET",
+                "estacionamento/listar_estacionamentos_usuario",
+                request
+            )
             
             id_estac = None
             if estac_res and estac_res.status_code == 200:
@@ -133,42 +137,105 @@ def get_clean_id_estacionamento(request) -> str:
 
 @login_required(login_url="/login/")
 def reservas(request):
-    id_estacionamento = get_clean_id_estacionamento(request)
-
     params = {
+        "id_estacionamento": get_clean_id_estacionamento(request),
         "placa": request.GET.get("placa", "").strip(),
         "usuario": request.GET.get("usuario", "").strip(),
         "data_inicio": request.GET.get("data_inicio", "").strip(),
         "data_fim": request.GET.get("data_fim", "").strip(),
         "status": request.GET.get("status", "").strip().lower(),
+        "limite": 24,
+        "cursor": request.GET.get("cursor", "").strip(),
+        "direcao": request.GET.get("direcao", "proxima"),
     }
 
-    if id_estacionamento:
-        endpoint = f"/{id_estacionamento}/reserva/"
+    response = api_request(
+        "GET",
+        "/reserva/",
+        request,
+        params=params
+    )
+
+    dados = {}
+    erro = ""
+
+    if response is not None and response.status_code == 200:
+        dados = response.json()
     else:
-        endpoint = "/reserva/"
+        codigo = (
+            response.status_code
+            if response is not None
+            else "sem conexão"
+        )
 
-    response = api_request("GET", endpoint, request, params=params)
+        erro = (
+            f"Não foi possível carregar as reservas "
+            f"(API: {codigo})."
+        )
 
-    reservas_lista = []
-    if response and response.status_code == 200:
-        res_json = response.json()
-        if isinstance(res_json, dict):
-            reservas_lista = res_json.get("reservas", [])
-        elif isinstance(res_json, list):
-            reservas_lista = res_json
+        if response is not None and response.status_code == 400:
+            erro = response.json().get("detail", erro)
+
+        print(f"[RESERVAS] {erro}")
+
+    filtros = request.GET.copy()
+
+    for chave in ("cursor", "direcao", "pagina"):
+        filtros.pop(chave, None)
+
+    try:
+        pagina = max(
+            1,
+            int(request.GET.get("pagina", "1"))
+        )
+    except ValueError:
+        pagina = 1
+
+    def link_pagina(cursor, direcao, numero):
+        query = filtros.copy()
+
+        query.update({
+            "cursor": cursor,
+            "direcao": direcao,
+            "pagina": str(numero),
+        })
+
+        return "?" + query.urlencode()
 
     context = {
-        "reservas": reservas_lista,
-        "filtro_placa": params["placa"],
-        "filtro_usuario": params["usuario"],
-        "filtro_data_inicio": params["data_inicio"],
-        "filtro_data_fim": params["data_fim"],
-        "filtro_status": params["status"],
+        "reservas": dados.get("reservas", []),
+        "erro_reservas": erro,
+        "pagina": pagina,
+        "url_anterior": (
+            link_pagina(
+                dados.get("cursor_anterior"),
+                "anterior",
+                max(1, pagina - 1)
+            )
+            if dados.get("tem_anterior")
+            else ""
+        ),
+        "url_proxima": (
+            link_pagina(
+                dados.get("cursor_proxima"),
+                "proxima",
+                pagina + 1
+            )
+            if dados.get("tem_proxima")
+            else ""
+        ),
         "fotoPerfil": request.session.get("fotoPerfil", ""),
         "user_name": request.session.get("user_name", "Visitante"),
-        "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
+        "user_cargo": request.session.get(
+            "user_cargo",
+            "Cargo Desconhecido"
+        ),
     }
+
+    for campo in (
+        "placa", "usuario", "data_inicio", "data_fim", "status"
+    ):
+        context[f"filtro_{campo}"] = params[campo]
 
     return render(request, "reservas.html", context)
 

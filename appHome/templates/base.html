@@ -38,6 +38,16 @@
 
                 <h3>{{ user_name }}</h3>
                 <p>{{ user_cargo }}</p>
+                <div class="sidebar-estacionamento">
+                    <span class="sidebar-estacionamento-label">
+                        <i class="bi bi-geo-alt"></i>
+                        Estacionamento
+                    </span>
+
+                    <strong>
+                        {{ nome_estacionamento|default:"Não identificado" }}
+                    </strong>
+                </div>
             </div>
 
             <nav class="menu" aria-label="Menu principal">
