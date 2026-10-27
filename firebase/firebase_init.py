@@ -9,7 +9,6 @@ print(f"[DEBUG] Tentando carregar credenciais em: {KEY_PATH}")
 
 try:
 	cred = credentials.Certificate(str(KEY_PATH))
-	firebase_admin.initialize_app(cred)
 	print("[SUCESSO] Credenciais carregadas com sucesso.")
 except Exception as e:
 	print(f"[FALHA] Erro ao carregar credenciais: {e}")
