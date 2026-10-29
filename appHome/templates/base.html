@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,30 +28,63 @@
             <div class="sidebar-header">
                 <div class="avatar">
                     {% if fotoPerfil %}
-                        <img src="{{ fotoPerfil }}" class="profile-pic">
+                        <img src="{{ fotoPerfil }}"
+                            class="profile-pic"
+                            alt="Foto do estacionamento">
                     {% else %}
-                        <i class="bi bi-person-circle" style="font-size: 60px; color: #046C4E;"></i>
+                        <i class="bi bi-person-circle"></i>
                     {% endif %}
                 </div>
+
                 <h3>{{ user_name }}</h3>
                 <p>{{ user_cargo }}</p>
+                <div class="sidebar-estacionamento">
+                    <span class="sidebar-estacionamento-label">
+                        <i class="bi bi-geo-alt"></i>
+                        Estacionamento
+                    </span>
+
+                    <strong>
+                        {{ nome_estacionamento|default:"Não identificado" }}
+                    </strong>
+                </div>
             </div>
 
-            <nav class="menu">
-                <button><a href="{% url 'gestor' %}"> <i class="bi bi-house-door-fill"></i> Dashboard</a></button>
-                <button><a href="{% url 'reservas' %}"><i class="bi bi-calendar-check-fill"></i> Reservas </a></button>
-                <button>
-                    <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on">
-                        <i class="bi bi-bell-fill"></i> Notificações
-                        {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
-                            <span class="badge bg-danger ms-1" id="navbar-notification-count">{{ notificacoes_nao_lidas }}</span>
-                        {% endif %}
-                    </a>
-                </button>
+            <nav class="menu" aria-label="Menu principal">
+                <a href="{% url 'gestor' %}"
+                {% if request.resolver_match.url_name == 'gestor' %}
+                aria-current="page"
+                {% endif %}>
+                    <i class="bi bi-house-door-fill"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{% url 'reservas' %}"
+                {% if request.resolver_match.url_name == 'reservas' %}
+                aria-current="page"
+                {% endif %}>
+                    <i class="bi bi-calendar-check-fill"></i>
+                    <span>Reservas</span>
+                </a>
+
+                <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on"
+                {% if request.resolver_match.url_name == 'notificacoes_admin' %}
+                aria-current="page"
+                {% endif %}>
+                    <i class="bi bi-bell-fill"></i>
+                    <span>Notificações</span>
+
+                    {% if notificacoes_nao_lidas and notificacoes_nao_lidas > 0 %}
+                        <span class="badge" id="navbar-notification-count">
+                            {{ notificacoes_nao_lidas }}
+                        </span>
+                    {% endif %}
+                </a>
             </nav>
 
             <a href="{% url 'logout' %}" class="logout-btn">
-                <i class="bi bi-box-arrow-right"></i> Sair
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Sair</span>
             </a>
         </aside>
 
