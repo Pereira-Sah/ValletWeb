@@ -2,7 +2,8 @@ import json
 import requests
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
-
+from .models import NotificacaoAdmin
+from django.urls import reverse
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponseRedirect
 from django.conf import settings
@@ -18,7 +19,6 @@ from django.views.decorators.cache import never_cache
 User = get_user_model()
 
 API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
-
 
 def api_request(method: str, endpoint: str, request_obj, data=None, params=None):
     url = f"{API_BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
@@ -42,6 +42,7 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
                 filtered_params[k] = v
         if not filtered_params:
             filtered_params = None
+
     try:
         response = requests.request(
             method=method.upper(),
@@ -51,11 +52,13 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
             headers=headers,
             timeout=10.0,
         )
+        if response.status_code == 401:
+            request_obj.session.flush()
+            raise PermissionDenied("Sessão expirada. Faça login novamente.")
         return response
     except requests.RequestException as e:
         print(f"[API ERROR] Erro na requisição para {url}: {e}")
         return None
-
 
 @csrf_exempt
 def firebase_login(request):
@@ -365,19 +368,25 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
         if response is None:
             print("[NOTIFICAÇÕES] Não foi possível conectar à API.")
             api_data = {}
+            notificacoes = []
         elif response.status_code != 200:
-            print(
-                f"[NOTIFICAÇÕES] A API respondeu com HTTP "
-                f"{response.status_code}."
-            )
+            print(f"[NOTIFICAÇÕES] A API respondeu com HTTP {response.status_code}.")
             api_data = {}
+            notificacoes = []
         else:
             api_data = response.json()
+            TIPOS_MAP = dict(NotificacaoAdmin.TIPOS_NOTIFICACAO)
+            notificacoes_api = api_data.get("notificacoes", [])
+            notificacoes = []
+            for n in notificacoes_api:
+                n = dict(n)
+                n["tipo_display"] = TIPOS_MAP.get(n.get("tipo"), n.get("tipo"))
+                notificacoes.append(n)
             print(
                 "[NOTIFICAÇÕES]",
                 f"Estacionamento da sessão: {id_estacionamento}",
                 f"Estacionamento da API: {api_data.get('id_estacionamento')}",
-                f"Quantidade retornada: {len(api_data.get('notificacoes', []))}",
+                f"Quantidade retornada: {len(notificacoes)}",
             )
             
         return {
@@ -385,7 +394,7 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
             "user_cargo": self.request.session.get("user_cargo", "Cargo Desconhecido"),
             "fotoPerfil": self.request.session.get("fotoPerfil", ""),
             "id_estacionamento": id_estacionamento,
-            "notificacoes": api_data.get("notificacoes", []),
+            "notificacoes": notificacoes,
             "nao_lidas": api_data.get("nao_lidas", 0),
             "total_notificacoes": api_data.get("total", 0),
             "tipos_notificacao": api_data.get("tipos_notificacao", []),
@@ -396,14 +405,11 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
             "filtro_apenas_nao_lidas": apenas_nao_lidas_bool,
         }
 
-
 def appHome(request):
     return render(request, 'home.html')
 
-
 def login_view(request):
     return render(request, 'login.html')
-
 
 def logout_view(request):
     try:
@@ -411,7 +417,6 @@ def logout_view(request):
     except Exception:
         pass
     return HttpResponseRedirect('/login/')
-
 
 class NotificacoesAPIView(LoginRequiredMixin, View):
     """

@@ -5,7 +5,7 @@
     <div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %}" id="notif-{{ item.id }}">
         <div class="notificacao-header">
             <span class="notificacao-tipo tipo-{{ item.tipo }}">
-                {{ item.tipo|upper }}
+                {{ item.tipo_display|upper }}
             </span>
 
             <div class="notificacao-acoes">

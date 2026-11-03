@@ -4,16 +4,19 @@ from django.utils import timezone
 
 class NotificacaoAdmin(models.Model):
     TIPOS_NOTIFICACAO = [
-        ('sistema_alerta_estacionamento', 'Alerta de Estacionamento'),
-        ('reserva_confirmada', 'Reserva Confirmada'),
-        ('alerta_saida', 'Alerta de Saída Manual'),
-        ('sistema_erro', 'Erro do Sistema'),
-        ('motorista_incorreto', 'Motorista Incorreto'),
-        ('info_geral', 'Informação Geral'),
+        ('estacionamento_reservado', 'Veículo com reserva estacionado'),
+        ('estacionamento_sem_reserva', 'Veículo sem reserva estacionado'),
+
+        ('obstrucao_camera', 'Alerta de obstrução na camera'),
         ('alerta_seguranca', 'Alerta de Segurança'),
+        ('pagamento_nao_confirmado', 'Pagamento da Reserva não confirmado'),
+
+        ('alerta_saida', 'Alerta de Saída'),
+        ('sistema_erro', 'Erro do Sistema'),
+        ('sistema_alerta_estacionamento', 'Alerta de Estacionamento'),
     ]
     
-    tipo = models.CharField(max_length=50, choices=TIPOS_NOTIFICACAO, default='info_geral', verbose_name='Tipo de Notificação')
+    tipo = models.CharField(max_length=50, choices=TIPOS_NOTIFICACAO, default='alerta_seguranca', verbose_name='Tipo de Notificação')
     motivo = models.TextField(verbose_name='Motivo/Descrição')
     timestamp = models.DateTimeField(default=timezone.now, verbose_name='Data/Hora')
     lida = models.BooleanField(default=False, verbose_name='Lida')
@@ -33,6 +36,5 @@ class NotificacaoAdmin(models.Model):
         verbose_name_plural = 'Notificações Admin'
     
     def __str__(self):
-        # Melhorando a representação para incluir o tipo
         tipo_display = dict(self.TIPOS_NOTIFICACAO).get(self.tipo, self.tipo)
         return f"[{tipo_display}] {self.placa or 'Sem placa'} - {self.timestamp.strftime('%d/%m/%Y %H:%M')}"
