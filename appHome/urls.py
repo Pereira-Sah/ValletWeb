@@ -4,7 +4,8 @@ from appHome import views
 from appHome.views import (
     firebase_login,
     NotificacoesAdminView,
-    NotificacoesAPIView
+    NotificacoesAPIView,
+    NotificacoesResumoView,
 )
 
 urlpatterns = [
@@ -15,6 +16,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name="logout"),
     path("auth/firebase/", firebase_login, name="firebase_login"),
     path('notificacoes/', NotificacoesAdminView.as_view(), name='notificacoes_admin'),
+    path('notificacoes/resumo/', NotificacoesResumoView.as_view(), name='notificacoes_resumo'),
     path('notificacoes/api/', NotificacoesAPIView.as_view(), name='notificacoes_api'),
     path('reservas/', views.reservas, name="reservas"),
 ]

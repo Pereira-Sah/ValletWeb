@@ -15,9 +15,16 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
+from appHome.context_processors import (
+    definir_nome_estacionamento,
+    invalidar_cache_notificacoes,
+    obter_resumo_notificacoes,
+)
+
 User = get_user_model()
 
 API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
+API_TIMEOUT = float(getattr(settings, "API_TIMEOUT", 6))
 
 
 def api_request(method: str, endpoint: str, request_obj, data=None, params=None):
@@ -49,7 +56,7 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
             json=data if data else None,
             params=filtered_params,
             headers=headers,
-            timeout=10.0,
+            timeout=API_TIMEOUT,
         )
         return response
     except requests.RequestException as e:
@@ -108,15 +115,26 @@ def firebase_login(request):
             )
             
             id_estac = None
+            nome_estac = ""
+
             if estac_res and estac_res.status_code == 200:
                 estacionamentos = estac_res.json()
                 if isinstance(estacionamentos, list) and len(estacionamentos) > 0:
-                    id_estac = estacionamentos[0].get("id")
+                    primeiro = estacionamentos[0]
+                    if isinstance(primeiro, dict):
+                        id_estac = primeiro.get("id")
+                        nome_estac = primeiro.get("nome") or ""
 
             if id_estac:
                 request.session["id_estacionamento"] = str(id_estac).strip()
+                definir_nome_estacionamento(
+                    str(id_estac).strip(),
+                    nome_estac,
+                )
             else:
                 request.session["id_estacionamento"] = ""
+
+            invalidar_cache_notificacoes(request)
 
         redirect_url = "/gestor/" if is_gestor else "/login/"
 
@@ -335,6 +353,7 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
         response = api_request("POST", "notificacoes/acao/", request, data=payload)
 
         if response and response.status_code == 200:
+            invalidar_cache_notificacoes(request)
             messages.success(request, "Ação executada com sucesso!")
         else:
             messages.error(request, "Erro ao processar ação na API centralizada.")
@@ -413,6 +432,14 @@ def logout_view(request):
     return HttpResponseRedirect('/login/')
 
 
+@method_decorator(never_cache, name="dispatch")
+class NotificacoesResumoView(LoginRequiredMixin, View):
+    """Entrega apenas o total e as não lidas, usando cache curto."""
+
+    def get(self, request):
+        return JsonResponse(obter_resumo_notificacoes(request))
+
+
 class NotificacoesAPIView(LoginRequiredMixin, View):
     """
     Mantida para requisições pontuais do frontend (AJAX e Firestore Realtime updates).
@@ -436,6 +463,8 @@ class NotificacoesAPIView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body) if request.body else {}
             res = api_request("POST", "notificacoes/api/", request, data=data)
+            if res and res.status_code == 200:
+                invalidar_cache_notificacoes(request)
             if res:
                 return JsonResponse(res.json(), status=res.status_code)
             return JsonResponse({'success': False, 'error': 'Erro de comunicação com a API Backend'}, status=502)

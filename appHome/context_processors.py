@@ -1,5 +1,184 @@
 import requests
 from django.conf import settings
+from django.core.cache import cache
+
+RESUMO_CACHE_PREFIX = "notificacoes_resumo"
+NOME_CACHE_PREFIX = "nome_estacionamento"
+
+
+def _ttl(nome_config, padrao):
+    try:
+        return int(getattr(settings, nome_config, padrao))
+    except (TypeError, ValueError):
+        return padrao
+
+
+def _timeout():
+    try:
+        return float(getattr(settings, "API_TIMEOUT", 6.0))
+    except (TypeError, ValueError):
+        return 6.0
+
+
+def _base_url():
+    return getattr(
+        settings,
+        "API_BASE_URL",
+        "http://127.0.0.1:8000",
+    ).rstrip("/")
+
+
+def _uid_usuario(request):
+    return str(getattr(request.user, "username", "") or "anonimo")
+
+
+def _headers(request, id_estacionamento):
+    return {
+        "Authorization": f"Bearer {request.session.get('id_token')}",
+        "X-Estacionamento-ID": id_estacionamento,
+    }
+
+
+def _inteiro(valor):
+    try:
+        return int(valor or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def chave_resumo_notificacoes(request, id_estacionamento=None):
+    if id_estacionamento is None:
+        id_estacionamento = str(
+            request.session.get("id_estacionamento") or ""
+        ).strip()
+
+    return (
+        f"{RESUMO_CACHE_PREFIX}:"
+        f"{_uid_usuario(request)}:"
+        f"{id_estacionamento}"
+    )
+
+
+def invalidar_cache_notificacoes(request, id_estacionamento=None):
+    cache.delete(chave_resumo_notificacoes(request, id_estacionamento))
+
+    if id_estacionamento is None:
+        cache.delete(chave_resumo_notificacoes(request, ""))
+
+
+def chave_nome_estacionamento(id_estacionamento):
+    return f"{NOME_CACHE_PREFIX}:{id_estacionamento}"
+
+
+def definir_nome_estacionamento(id_estacionamento, nome):
+    if not id_estacionamento or not nome:
+        return
+
+    cache.set(
+        chave_nome_estacionamento(id_estacionamento),
+        nome,
+        _ttl("NOME_ESTACIONAMENTO_TTL", 600),
+    )
+
+
+def obter_resumo_notificacoes(request, usar_cache=True):
+    """Resumo leve (total e não lidas) com cache curto no Django."""
+    id_estacionamento = str(
+        request.session.get("id_estacionamento") or ""
+    ).strip()
+
+    chave = chave_resumo_notificacoes(request, id_estacionamento)
+
+    if usar_cache:
+        dados = cache.get(chave)
+        if isinstance(dados, dict):
+            return dados
+
+    vazio = {
+        "total": 0,
+        "nao_lidas": 0,
+        "id_estacionamento": id_estacionamento,
+    }
+
+    if not request.session.get("id_token"):
+        return vazio
+
+    try:
+        resposta = requests.get(
+            f"{_base_url()}/notificacoes/resumo/",
+            headers=_headers(request, id_estacionamento),
+            timeout=_timeout(),
+        )
+
+        if resposta.status_code != 200:
+            print(
+                "[CONTADOR NOTIFICAÇÕES] "
+                f"HTTP {resposta.status_code}"
+            )
+            return vazio
+
+        dados = resposta.json()
+
+    except (requests.RequestException, ValueError) as erro:
+        print(
+            "[CONTADOR NOTIFICAÇÕES] "
+            f"Falha na consulta: {erro}"
+        )
+        return vazio
+
+    if not isinstance(dados, dict):
+        return vazio
+
+    resumo = {
+        "total": _inteiro(dados.get("total")),
+        "nao_lidas": _inteiro(dados.get("nao_lidas")),
+        "id_estacionamento": str(
+            dados.get("id_estacionamento") or id_estacionamento
+        ).strip(),
+    }
+
+    cache.set(chave, resumo, _ttl("NOTIFICACOES_RESUMO_TTL", 20))
+    return resumo
+
+
+def _obter_nome_estacionamento(request, id_estacionamento):
+    if not id_estacionamento:
+        return ""
+
+    chave = chave_nome_estacionamento(id_estacionamento)
+    nome = cache.get(chave)
+
+    if nome is not None:
+        return nome
+
+    if not request.session.get("id_token"):
+        return ""
+
+    try:
+        resposta = requests.get(
+            f"{_base_url()}/estacionamento/"
+            f"buscar_estacionamento/{id_estacionamento}",
+            headers=_headers(request, id_estacionamento),
+            timeout=_timeout(),
+        )
+
+        if resposta.status_code == 200:
+            nome = resposta.json().get("nome") or ""
+            definir_nome_estacionamento(id_estacionamento, nome)
+            return nome
+
+        print(
+            "[SIDEBAR ESTACIONAMENTO] "
+            f"HTTP {resposta.status_code}"
+        )
+
+    except (requests.RequestException, ValueError) as erro:
+        print(
+            "[SIDEBAR ESTACIONAMENTO] "
+            f"Falha na consulta: {erro}"
+        )
+
+    return ""
 
 
 def notificacoes_globais(request):
@@ -11,79 +190,34 @@ def notificacoes_globais(request):
     if not request.user.is_authenticated:
         return contexto
 
-    token = request.session.get("id_token")
-
-    if not token:
+    if not request.session.get("id_token"):
         return contexto
 
-    base_url = getattr(
-        settings,
-        "API_BASE_URL",
-        "http://127.0.0.1:8000"
-    ).rstrip("/")
+    resumo = obter_resumo_notificacoes(request)
+    contexto["notificacoes_nao_lidas"] = resumo.get("nao_lidas", 0)
 
     id_estacionamento = str(
         request.session.get("id_estacionamento") or ""
     ).strip()
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "X-Estacionamento-ID": id_estacionamento,
-    }
+    if not id_estacionamento:
+        id_api = str(resumo.get("id_estacionamento") or "").strip()
 
-    try:
-        resposta = requests.get(
-            f"{base_url}/notificacoes/",
-            headers=headers,
-            timeout=10,
-        )
+        if id_api:
+            id_estacionamento = id_api
+            request.session["id_estacionamento"] = id_api
 
-        if resposta.status_code == 200:
-            dados = resposta.json()
-
-            contexto["notificacoes_nao_lidas"] = dados.get(
-                "nao_lidas", 0
+            # A primeira consulta foi feita sem o ID. Aquece a chave correta
+            # para as próximas páginas não repetirem a busca.
+            cache.set(
+                chave_resumo_notificacoes(request, id_api),
+                resumo,
+                _ttl("NOTIFICACOES_RESUMO_TTL", 20),
             )
 
-            if not id_estacionamento:
-                id_estacionamento = str(
-                    dados.get("id_estacionamento") or ""
-                ).strip()
-        else:
-            print(
-                "[CONTADOR NOTIFICAÇÕES] "
-                f"HTTP {resposta.status_code}"
-            )
-
-    except (requests.RequestException, ValueError) as erro:
-        print(
-            "[CONTADOR NOTIFICAÇÕES] "
-            f"Falha na consulta: {erro}"
-        )
-
-    if id_estacionamento:
-        try:
-            resposta = requests.get(
-                f"{base_url}/estacionamento/"
-                f"buscar_estacionamento/{id_estacionamento}",
-                headers=headers,
-                timeout=10,
-            )
-
-            if resposta.status_code == 200:
-                contexto["nome_estacionamento"] = (
-                    resposta.json().get("nome") or ""
-                )
-            else:
-                print(
-                    "[SIDEBAR ESTACIONAMENTO] "
-                    f"HTTP {resposta.status_code}"
-                )
-
-        except (requests.RequestException, ValueError) as erro:
-            print(
-                "[SIDEBAR ESTACIONAMENTO] "
-                f"Falha na consulta: {erro}"
-            )
+    contexto["nome_estacionamento"] = _obter_nome_estacionamento(
+        request,
+        id_estacionamento,
+    )
 
     return contexto

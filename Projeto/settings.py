@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -142,6 +143,23 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
 
+# Cache local usado para o resumo de notificações e o nome do estacionamento.
+# O TTL curto mantém o badge atualizado sem repetir a consulta em cada página.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "vallet-default",
+        "TIMEOUT": 300,
+    }
+}
+
+NOTIFICACOES_RESUMO_TTL = int(
+    os.environ.get("NOTIFICACOES_RESUMO_TTL", "20")
+)
+NOME_ESTACIONAMENTO_TTL = int(
+    os.environ.get("NOME_ESTACIONAMENTO_TTL", "600")
+)
+API_TIMEOUT = float(os.environ.get("API_TIMEOUT", "6"))
+
 # Firebase REST API key (used only if you want server-side sign-in with email+password)
-import os
 FIREBASE_API_KEY = os.environ.get("FIREBASE_API_KEY", "")

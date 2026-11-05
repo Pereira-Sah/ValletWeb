@@ -120,27 +120,15 @@
         {% include 'partials/_notificacoes_list.html' %}
     </div>
 </div>
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyAmbUqB1PQPPsXHd_CwiVoDR_emoCEfLUw",
-        authDomain: "valletprojeto-ce6f6.firebaseapp.com",
-        databaseURL: "https://valletprojeto-ce6f6-default-rtdb.firebaseio.com",
-        projectId: "valletprojeto-ce6f6",
-        storageBucket: "valletprojeto-ce6f6.firebasestorage.app",
-        messagingSenderId: "871428058139",
-        appId: "1:871428058139:web:85b83f8426e183b9addcbe"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const rawId = "{{ id_estacionamento|escapejs }}".trim();
+<script>
+    const URL_RESUMO = "{% url 'notificacoes_resumo' %}";
+    const URL_NOTIFICACOES = "{% url 'notificacoes_admin' %}";
 
     let refreshTimer;
     let activeRequest;
+    let ultimoNaoLidas = Number(
+        document.getElementById('notificacoes-estado')?.dataset.naoLidas || 0
+    );
 
     function atualizarContadores() {
         const estado = document.getElementById('notificacoes-estado');
@@ -149,7 +137,7 @@
         const marcarTodas = document.getElementById('marcar-todas-form');
         if (marcarTodas) marcarTodas.hidden = naoLidas === 0;
 
-        const linkNotificacoes = document.querySelector(`.menu a[href^="{% url 'notificacoes_admin' %}"]`);
+        const linkNotificacoes = document.querySelector(`.menu a[href^="${URL_NOTIFICACOES}"]`);
         let contador = document.getElementById('navbar-notification-count');
         if (!contador && linkNotificacoes) {
             contador = document.createElement('span');
@@ -171,7 +159,8 @@
         try {
             const response = await fetch(window.location.href, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                signal: controller.signal
+                signal: controller.signal,
+                cache: 'no-store'
             });
             if (response.redirected) {
                 window.location.assign(response.url);
@@ -181,10 +170,10 @@
             const html = await response.text();
             if (controller.signal.aborted) return;
             const fragment = new DOMParser().parseFromString(html, 'text/html');
-            if (!fragment.getElementById('notificacoes-estado')) {
-                throw new Error('Resposta de notificações inválida');
-            }
+            const estado = fragment.getElementById('notificacoes-estado');
+            if (!estado) throw new Error('Resposta de notificações inválida');
             document.getElementById('container-notificacoes').innerHTML = html;
+            ultimoNaoLidas = Number(estado.dataset.naoLidas) || 0;
             atualizarContadores();
         } catch (error) {
             if (error.name !== 'AbortError') console.error('Erro ao atualizar notificações:', error);
@@ -193,23 +182,34 @@
         }
     }
 
-    atualizarContadores();
-
-    if (rawId && rawId !== 'None') {
-        const targetIds = [rawId];
-        if (!isNaN(rawId)) targetIds.push(Number(rawId));
-        const q = query(
-            collection(db, 'notificacoes_admin'),
-            where('estacionamentoId', 'in', targetIds)
-        );
-        let initialLoad = true;
-        onSnapshot(q, snapshot => {
-            if (initialLoad) { initialLoad = false; return; }
-            if (snapshot.metadata.hasPendingWrites || snapshot.docChanges().length === 0) return;
-            clearTimeout(refreshTimer);
-            refreshTimer = setTimeout(atualizarNotificacoes, 350);
-        }, error => console.error('Erro no listener de notificações:', error));
+    async function verificarResumo() {
+        try {
+            const response = await fetch(URL_RESUMO, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                cache: 'no-store'
+            });
+            if (response.redirected) {
+                window.location.assign(response.url);
+                return;
+            }
+            if (!response.ok) return;
+            const dados = await response.json();
+            const naoLidas = Number(dados.nao_lidas) || 0;
+            const estado = document.getElementById('notificacoes-estado');
+            if (!estado) return;
+            estado.dataset.naoLidas = naoLidas;
+            atualizarContadores();
+            if (naoLidas !== ultimoNaoLidas) {
+                ultimoNaoLidas = naoLidas;
+                clearTimeout(refreshTimer);
+                refreshTimer = setTimeout(atualizarNotificacoes, 250);
+            }
+        } catch (error) {
+            console.error('Erro ao verificar novas notificações:', error);
+        }
     }
 
+    atualizarContadores();
+    setInterval(verificarResumo, 45000);
 </script>
 {% endblock %}
