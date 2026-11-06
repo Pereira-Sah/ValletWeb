@@ -24,6 +24,7 @@ class NotificacaoAdmin(models.Model):
     vaga_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='ID da Vaga (Firestore)')
     vaga_numero = models.CharField(max_length=20, blank=True, null=True, verbose_name='Número da Vaga')
     placa = models.CharField(max_length=15, blank=True, null=True, verbose_name='Placa do Veículo')
+    imagem = models.CharField(max_length=255, blank=True, null=True, verbose_name='Imagem da Placa do Veículo')
     usuario_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='ID do Usuário (Firestore)')
     estacionamento_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='ID do Estacionamento (Firestore)')
     

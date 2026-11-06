@@ -15,6 +15,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.core.exceptions import PermissionDenied
 
 from appHome.context_processors import (
     definir_nome_estacionamento,
@@ -401,12 +402,13 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
                 n = dict(n)
                 n["tipo_display"] = TIPOS_MAP.get(n.get("tipo"), n.get("tipo"))
                 notificacoes.append(n)
-            print(
-                "[NOTIFICAÇÕES]",
-                f"Estacionamento da sessão: {id_estacionamento}",
-                f"Estacionamento da API: {api_data.get('id_estacionamento')}",
-                f"Quantidade retornada: {len(notificacoes)}",
-            )
+            # print(
+            #     "[NOTIFICAÇÕES]",
+            #     f"Estacionamento da sessão: {id_estacionamento}",
+            #     f"Estacionamento da API: {api_data.get('id_estacionamento')}",
+            #     f"Quantidade retornada: {len(notificacoes)}",
+            #     f"retornados: {notificacoes}",
+            # )
             
         return {
             "user_name": self.request.session.get("user_name", "Visitante"),

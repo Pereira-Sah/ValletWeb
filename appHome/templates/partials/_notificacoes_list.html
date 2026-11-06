@@ -35,7 +35,11 @@
                 </form>
             </div>
         </div>
-
+        <div>
+            {% if item.imagem %}
+            <img src="{{ item.imagem }}" alt="{{item.placa}}" style="height: 40px;">
+            {% endif %}
+        </div>
         <div class="notificacao-conteudo">
             {% if item.titulo and item.titulo != "Alerta do Sistema" %}
             <h4 class="notificacao-titulo">{{ item.titulo }}</h4>
