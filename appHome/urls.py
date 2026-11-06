@@ -13,6 +13,7 @@ urlpatterns = [
     path('', views.appHome, name="appHome"),
     path('login/', views.login_view, name="login"),
     path('gestor/', views.gestor, name="gestor"),
+    path('gestor/dados/', views.gestor_dashboard_dados, name="gestor_dashboard_dados"),
     path('logout/', views.logout_view, name="logout"),
     path("auth/firebase/", firebase_login, name="firebase_login"),
     path('notificacoes/', NotificacoesAdminView.as_view(), name='notificacoes_admin'),

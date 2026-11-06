@@ -15,6 +15,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 from django.core.exceptions import PermissionDenied
 
 from appHome.context_processors import (
@@ -28,7 +29,14 @@ User = get_user_model()
 API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
 API_TIMEOUT = float(getattr(settings, "API_TIMEOUT", 6))
 
-def api_request(method: str, endpoint: str, request_obj, data=None, params=None):
+def api_request(
+    method: str,
+    endpoint: str,
+    request_obj,
+    data=None,
+    params=None,
+    timeout=None,
+):
     url = f"{API_BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
     headers = {
         "X-Estacionamento-ID": get_clean_id_estacionamento(request_obj),
@@ -58,7 +66,7 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
             json=data if data else None,
             params=filtered_params,
             headers=headers,
-            timeout=API_TIMEOUT,
+            timeout=API_TIMEOUT if timeout is None else timeout,
         )
         if response.status_code == 401:
             request_obj.session.flush()
@@ -264,80 +272,99 @@ def reservas(request):
 @never_cache
 @login_required(login_url="/login/")
 def gestor(request):
-    id_estacionamento = get_clean_id_estacionamento(request)
-    if id_estacionamento:
-        endpoint = f"/admin/{id_estacionamento}/dashboard"
-    else:
-        endpoint = "/admin/dashboard"
-
-    # Esta era a integração original da dashboard e volta a ser a fonte única
-    # das métricas reais do estacionamento.
-    dashboard_response = api_request("GET", endpoint, request)
-    if id_estacionamento and (not dashboard_response or dashboard_response.status_code != 200):
-        # Se a sessão tiver um ID antigo, deixa a API localizar o estacionamento
-        # pelo usuário autenticado, como fazia a versão original sem ID.
-        dashboard_response = api_request("GET", "/admin/dashboard", request)
-    dash_data = {}
-    dashboard_api_ok = False
-    dashboard_api_status = None
-
-    if dashboard_response is not None:
-        dashboard_api_status = dashboard_response.status_code
-    if dashboard_response and dashboard_response.status_code == 200:
-        resposta_dashboard = dashboard_response.json()
-        if isinstance(resposta_dashboard, dict):
-            dash_data = resposta_dashboard
-            dashboard_api_ok = True
-
-    vagas_total = max(0, int(dash_data.get("vagas_total") or 0))
-    vagas_ocupadas = max(0, min(int(dash_data.get("vagas_ocupadas") or 0), vagas_total))
-    vagas_livres = max(0, vagas_total - vagas_ocupadas)
-    vagas_percentual = round((vagas_ocupadas / vagas_total) * 100) if vagas_total else 0
-
-    faturamento_7_dias = dash_data.get("faturamento_7_dias") or []
-    faturamento_7_dias_total = sum(float(item.get("valor") or 0) for item in faturamento_7_dias if isinstance(item, dict))
-
-    # Mantém compatibilidade com a resposta original da API.
-    # A API antiga não devolve "status_reservas"; ela devolve estas métricas separadas.
-    status_labels = ["Hoje", "Ativas e pendentes", "Canceladas"]
-    status_values = [
-        int(dash_data.get("reservas_hoje") or 0),
-        int(dash_data.get("reservas_pendentes") or 0),
-        int(dash_data.get("reservas_canceladas") or 0),
-    ]
-    status_colors = ["#00A676", "#046C4E", "#D32F2F"]
-    status_data = {
-        "geral": {
-            "labels": status_labels,
-            "values": status_values,
-            "colors": status_colors,
-        }
-    }
-
-    context = {
+    # Apenas a estrutura da página. Os dados vêm das rotas específicas abaixo.
+    # Não chama o dashboard antigo nem recalcula faturamento.
+    return render(request, "admin.html", {
         "user_name": request.session.get("user_name", "Visitante"),
         "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
         "fotoPerfil": request.session.get("fotoPerfil", ""),
-        "id_estacionamento_usado": id_estacionamento,
-        "vagas_total": vagas_total,
-        "vagas_ocupadas": vagas_ocupadas,
-        "vagas_livres": vagas_livres,
-        "vagas_percentual": vagas_percentual,
-        "vagas_api_ok": dashboard_api_ok,
-        "vagas_api_status": dashboard_api_status,
-        "dashboard_api_ok": dashboard_api_ok,
-        "dashboard_api_status": dashboard_api_status,
-        "faturamento_7_dias": faturamento_7_dias,
-        "faturamento_7_dias_total": f"{faturamento_7_dias_total:,.2f}".replace(".", ","),
-        "reservas_hoje": dash_data.get("reservas_hoje", 0),
-        "reservas_pendentes": dash_data.get("reservas_pendentes", 0),
-        "tempo_medio_permanencia": dash_data.get("tempo_medio_permanencia", "—"),
-        "ultimas_reservas": dash_data.get("ultimas_reservas", []),
-        "status_reservas_json": status_data,
-        "status_api_ok": dashboard_api_ok,
-    }
+    })
 
-    return render(request, "admin.html", context)
+
+@never_cache
+@require_GET
+def gestor_dashboard_dados(request):
+    """Proxy autenticado: o token Firebase nunca é enviado ao JavaScript."""
+    if not request.user.is_authenticated or not request.session.get("id_token"):
+        return JsonResponse({
+            "detail": "Sua sessão expirou. Faça login novamente.",
+            "login_url": reverse("login"),
+        }, status=401)
+
+    secao = request.GET.get("secao", "reservas")
+    if secao not in ("reservas", "ocupacao"):
+        return JsonResponse({"detail": "Seção inválida."}, status=400)
+
+    params = {}
+    if secao == "reservas":
+        periodo = request.GET.get("periodo", "mes_atual")
+        if periodo not in ("ultimos_7_dias", "mes_atual", "mes"):
+            return JsonResponse({"detail": "Período inválido."}, status=422)
+        params["periodo"] = periodo
+        ano, mes = request.GET.get("ano"), request.GET.get("mes")
+        if periodo == "mes":
+            try:
+                ano, mes = int(ano), int(mes)
+            except (ValueError, TypeError):
+                return JsonResponse({"detail": "Informe ano e mês válidos."}, status=422)
+            if not 1900 <= ano <= 9998 or not 1 <= mes <= 12:
+                return JsonResponse({"detail": "Ano ou mês fora do intervalo."}, status=422)
+            params.update({"ano": ano, "mes": mes})
+        elif ano is not None or mes is not None:
+            return JsonResponse({"detail": "Ano e mês só podem ser usados em Escolher mês."}, status=422)
+
+    id_estacionamento = get_clean_id_estacionamento(request)
+    endpoint = (
+        f"/admin/{id_estacionamento}/dashboard/{secao}"
+        if id_estacionamento else f"/admin/dashboard/{secao}"
+    )
+    try:
+        resposta = api_request(
+            "GET", endpoint, request, params=params,
+            timeout=float(getattr(settings, "API_DASHBOARD_TIMEOUT", 35)),
+        )
+        # Somente um ID removido/desatualizado permite redescobrir o estacionamento.
+        # Não mascara falhas de acesso, índices, rede ou parâmetros com outra consulta.
+        if id_estacionamento and resposta is not None and resposta.status_code == 404:
+            resposta = api_request(
+                "GET", f"/admin/dashboard/{secao}", request, params=params,
+                timeout=float(getattr(settings, "API_DASHBOARD_TIMEOUT", 35)),
+            )
+    except PermissionDenied:
+        return JsonResponse({
+            "detail": "Sua sessão expirou. Faça login novamente.",
+            "login_url": reverse("login"),
+        }, status=401)
+
+    if resposta is None:
+        return JsonResponse({
+            "detail": "Não foi possível conectar à API. Tente mudar o período novamente.",
+        }, status=503)
+
+    try:
+        dados = resposta.json()
+    except ValueError:
+        return JsonResponse({"detail": "A API retornou uma resposta inválida."}, status=502)
+
+    if resposta.status_code != 200:
+        detalhe = dados.get("detail") if isinstance(dados, dict) else None
+        if not isinstance(detalhe, str):
+            detalhe = "Não foi possível carregar os dados do dashboard."
+        # Uma rota nova ausente deve orientar a instalar a API da etapa 2.
+        if resposta.status_code == 404 and detalhe == "Not Found":
+            detalhe = "Atualize a API com os arquivos da etapa 2 e reinicie o serviço."
+        codigo = resposta.status_code if resposta.status_code in (401, 403, 404, 422, 503) else 502
+        return JsonResponse({"detail": detalhe}, status=codigo)
+
+    if not isinstance(dados, dict) or not dados.get("id_estacionamento"):
+        return JsonResponse({"detail": "Dados do dashboard inválidos."}, status=502)
+    if secao == "reservas" and not all(isinstance(dados.get(k), dict) for k in ("resumo", "graficos", "periodo")):
+        return JsonResponse({"detail": "Dados das reservas inválidos."}, status=502)
+    if secao == "ocupacao" and not all(isinstance(dados.get(k), int) for k in ("vagas_total", "vagas_ocupadas", "vagas_disponiveis")):
+        return JsonResponse({"detail": "Dados de ocupação inválidos."}, status=502)
+
+    request.session["id_estacionamento"] = str(dados["id_estacionamento"])
+    return JsonResponse(dados)
 
 
 @method_decorator(never_cache, name="dispatch")

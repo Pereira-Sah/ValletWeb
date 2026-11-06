@@ -1,472 +1,207 @@
 {% extends "base.html" %}
 {% load static %}
-
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'dashboard.css' %}?v=20260923-2">
+<link rel="stylesheet" href="{% static 'dashboard.css' %}?v=reservas-etapa2-1">
 {% endblock %}
-
 {% block tituloPagina %}Dashboard{% endblock %}
-
 {% block content %}
-<div class="dashboard-header">
-    <div>
-        <h1 class="titulo-dashboard">Dashboard</h1>
-        <p class="dashboard-subtitle">Acompanhe o movimento do estacionamento em um só lugar.</p>
-    </div>
-</div>
-
-<section class="metric-grid" aria-label="Resumo do estacionamento">
-    <article class="metric-card">
-        <div class="metric-card-top">
-            <span>Faturamento · 7 dias</span>
-            <i class="bi bi-cash-coin"></i>
-        </div>
-        <strong>R$ {{ faturamento_7_dias_total|default:"0,00" }}</strong>
-        <small class="metric-positive"><i class="bi bi-broadcast-pin"></i> últimos 7 dias</small>
-    </article>
-
-    <article class="metric-card">
-        <div class="metric-card-top">
-            <span>Reservas hoje</span>
-            <i class="bi bi-calendar2-check"></i>
-        </div>
-        <strong>{{ reservas_hoje|default:0 }}</strong>
-        <small>{{ reservas_pendentes|default:0 }} aguardando confirmação</small>
-    </article>
-
-    <article class="metric-card">
-        <div class="metric-card-top">
-            <span>Vagas livres</span>
-            <i class="bi bi-p-square-fill"></i>
-        </div>
-        <strong id="vagasLivresPercentual">0%</strong>
-        <small>{{ vagas_livres }} de {{ vagas_total }} vagas disponíveis</small>
-    </article>
-
-    <article class="metric-card">
-        <div class="metric-card-top">
-            <span>Permanência média</span>
-            <i class="bi bi-stopwatch-fill"></i>
-        </div>
-        <strong>{{ tempo_medio_permanencia|default:"—" }}</strong>
-        <small>média das reservas concluídas</small>
-    </article>
-</section>
-
-<section class="dashboard-grid dashboard-grid-primary">
-    <article class="chart-card chart-card-wide">
-        <div class="chart-heading">
-            <div>
-                <h2>Faturamento dos últimos 7 dias</h2>
-                <p>Valores recebidos por dia</p>
-            </div>
-            <span class="chart-highlight">R$ {{ faturamento_7_dias_total|default:"0,00" }}</span>
-        </div>
-        <div class="chart-canvas chart-canvas-large">
-            <canvas id="faturamentoChart"></canvas>
-        </div>
-    </article>
-
-    <article class="chart-card">
-        <div class="chart-heading">
-            <div>
-                <h2>Reservas ao longo do dia</h2>
-                <p>Movimento estimado de hoje</p>
-            </div>
-            <i class="bi bi-clock-history chart-icon"></i>
-        </div>
-        <div class="chart-canvas chart-canvas-large">
-            <canvas id="reservasPorHorarioChart"></canvas>
-        </div>
-    </article>
-</section>
-
-<section class="dashboard-grid dashboard-grid-secondary">
-    <article class="chart-card occupancy-card">
-        <div class="chart-heading">
-            <div>
-                <h2>Disponibilidade das vagas</h2>
-                <p>Situação neste momento</p>
-            </div>
-        </div>
-
-        <div class="occupancy-layout">
-            <div class="donut-holder">
-                <canvas id="ocupacaoVagasChart"></canvas>
-                <div class="donut-center">
-                    <strong id="donutVagasPercentual">0%</strong>
-                    <span>livres</span>
-                </div>
-            </div>
-
-            <div class="occupancy-legend">
-                <div>
-                    <span class="legend-dot occupied"></span>
-                    <strong>{{ vagas_ocupadas }}</strong>
-                    <small>Ocupadas</small>
-                </div>
-
-                <div>
-                    <span class="legend-dot available"></span>
-                    <strong>{{ vagas_livres }}</strong>
-                    <small>Disponíveis</small>
-                </div>
-            </div>
-        </div>
-    </article>
-
-    <article class="chart-card status-card">
-        <div class="chart-heading status-heading">
-            <div>
-                <h2>Status das reservas</h2>
-                <p>Distribuição por período</p>
-            </div>
-
-            <div class="status-heading-actions">
-                <select id="statusPeriodFilter" class="chart-filter" aria-label="Filtrar status das reservas">
-                    <option value="geral">Dados atuais</option>
+<div class="vallet-dashboard" id="reservasDashboard" data-endpoint="{% url 'gestor_dashboard_dados' %}" data-login-url="{% url 'login' %}">
+    <header class="vd-header">
+        <div><h1>Dashboard</h1><p>{{ nome_estacionamento|default:"Visão geral do estacionamento" }}</p></div>
+        <form class="vd-filters" id="dashboardFilters" aria-label="Período das reservas">
+            <div class="vd-field"><label for="dashboardPeriod">Período</label>
+                <select id="dashboardPeriod" name="periodo">
+                    <option value="mes_atual">Este mês</option>
+                    <option value="ultimos_7_dias">Últimos 7 dias</option>
+                    <option value="mes">Escolher mês e ano</option>
                 </select>
             </div>
-        </div>
-
-        <div class="status-layout">
-            <div class="status-donut-holder">
-                <canvas id="statusReservasChart"></canvas>
-                <div class="donut-center status-center">
-                    <strong id="statusTotal">0</strong>
-                    <span>reservas</span>
-                </div>
+            <div class="vd-field" id="dashboardMonthField" hidden>
+                <label for="dashboardMonth">Mês e ano</label>
+                <input id="dashboardMonth" type="month" min="1900-01" max="9998-12" autocomplete="off">
             </div>
-
-            <div class="status-legend" id="statusLegend"></div>
+        </form>
+    </header>
+    <div class="vd-period-line"><p id="dashboardRange">Carregando período…</p><p id="dashboardUpdated"></p></div>
+    <p id="dashboardMessage" class="vd-message" role="status" aria-live="polite">Carregando reservas…</p>
+    <noscript><p class="vd-alert">Ative o JavaScript para consultar os filtros e gráficos.</p></noscript>
+    <div id="dashboardResults" aria-busy="true">
+        <section class="vd-metrics" aria-label="Resumo das reservas do período">
+            <article class="vd-metric"><div><h2>Reservas no período</h2><i class="bi bi-calendar-check" aria-hidden="true"></i></div><strong id="metricTotal">—</strong><p>Pela data de início</p></article>
+            <article class="vd-metric"><div><h2>Confirmadas</h2><i class="bi bi-calendar2-check" aria-hidden="true"></i></div><strong id="metricConfirmed">—</strong><p>Com horário ainda válido</p></article>
+            <article class="vd-metric"><div><h2>Concluídas</h2><i class="bi bi-check2-circle" aria-hidden="true"></i></div><strong id="metricCompleted">—</strong><p>Conforme o status registrado</p></article>
+            <article class="vd-metric"><div><h2>Canceladas</h2><i class="bi bi-x-circle" aria-hidden="true"></i></div><strong id="metricCancelled">—</strong><p>Dentro do período selecionado</p></article>
+        </section>
+        <section class="vd-charts" aria-label="Gráficos de reservas">
+            <article class="vd-card vd-daily">
+                <div class="vd-card-heading"><div><h2>Reservas por dia</h2><p id="dailyChartCaption">Período selecionado</p></div><span class="vd-pill" id="dailyTotal">—</span></div>
+                <p class="vd-empty" id="dailyEmpty">Aguardando dados do período.</p>
+                <div class="vd-canvas" id="dailyCanvasHolder" hidden><canvas id="reservasPorDiaChart" role="img" aria-label="Reservas por dia. Valores também disponíveis na tabela abaixo."></canvas></div>
+            </article>
+            <article class="vd-card vd-status">
+                <div class="vd-card-heading"><div><h2>Situação das reservas</h2><p>Estado registrado na consulta</p></div></div>
+                <p class="vd-empty" id="statusEmpty">Aguardando dados do período.</p>
+                <div class="vd-canvas vd-canvas-status" id="statusCanvasHolder" hidden><canvas id="statusReservasChart" role="img" aria-label="Distribuição por situação. Valores descritos na lista abaixo."></canvas></div>
+                <ul class="vd-status-list" id="statusLegend" aria-label="Quantidades por situação"></ul>
+            </article>
+        </section>
+        <div class="vd-bottom">
+            <section class="vd-card vd-details">
+                <div class="vd-card-heading"><div><h2>Detalhes do período</h2><p>Consulte os números usados nos gráficos.</p></div><a href="{% url 'reservas' %}" class="vd-link">Ver reservas <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></div>
+                <details id="dailyDetails"><summary>Consultar dados em tabela</summary>
+                    <div class="vd-table-scroll" tabindex="0" role="region" aria-label="Tabela diária de reservas">
+                        <table class="vd-table"><caption class="vd-sr-only">Quantidade de reservas por dia no período selecionado</caption><thead><tr><th scope="col">Data</th><th scope="col">Reservas</th></tr></thead><tbody id="dailyTable"><tr><td colspan="2">Aguardando dados.</td></tr></tbody></table>
+                    </div>
+                </details>
+                <p class="vd-note">Reservas com horário encerrado e ainda ativas aparecem separadamente, sem serem concluídas automaticamente.</p>
+                <p class="vd-note">O status de conclusão não confirma o pagamento.</p>
+            </section>
+            <aside class="vd-card vd-occupancy" aria-labelledby="occupancyTitle">
+                <div class="vd-card-heading"><h2 id="occupancyTitle">Ocupação atual</h2><span class="vd-pill">Na consulta</span></div>
+                <p class="vd-occupancy-value"><strong id="occupancyOccupied">—</strong><span> / </span><span id="occupancyTotal">—</span></p><p>vagas ocupadas</p>
+                <progress id="occupancyProgress" max="100" value="0" aria-label="Percentual de vagas ocupadas" hidden></progress>
+                <p id="occupancyAvailable">Consultando disponibilidade…</p><p class="vd-note" id="occupancyTime" role="status"></p><p class="vd-note">Independente do período das reservas.</p>
+            </aside>
         </div>
-    </article>
-</section>
-
-<section class="bottom-grid">
-    <article class="last-reservations-card">
-        <div class="section-heading">
-            <div>
-                <h2>Últimas reservas</h2>
-                <p>Atividades mais recentes</p>
-            </div>
-
-            <a href="{% url 'reservas' %}" class="section-link">
-                Ver todas <i class="bi bi-arrow-up-right"></i>
-            </a>
-        </div>
-
-        <ul class="latest-list">
-            {% for reserva in ultimas_reservas %}
-                <li>
-                    <span class="reservation-avatar">
-                        <i class="bi bi-car-front-fill"></i>
-                    </span>
-
-                    <span class="reservation-info">
-                        <strong>
-                            {% if reserva.vaga %}
-                                {{ reserva.vaga }}
-                            {% elif reserva.nome_vaga_completo %}
-                                {{ reserva.nome_vaga_completo }}
-                            {% else %}
-                                Vaga não informada
-                            {% endif %}
-                        </strong>
-
-                        <small>
-                            {{ reserva.usuario|default:"Usuário não identificado" }}
-                            ·
-                            {{ reserva.inicioReserva|default:"Sem data" }}
-                        </small>
-                    </span>
-
-                    <span class="reservation-status">
-                        {{ reserva.status|default:"Desconhecido" }}
-                    </span>
-                </li>
-            {% empty %}
-                <li class="latest-empty">Nenhuma reserva encontrada.</li>
-            {% endfor %}
-        </ul>
-    </article>
-
-    <article class="chart-card permanence-card">
-        <div class="chart-heading">
-            <div>
-                <h2>Tempo médio de permanência</h2>
-                <p>Reservas concluídas</p>
-            </div>
-
-            <i class="bi bi-hourglass-split chart-icon"></i>
-        </div>
-
-        <div class="permanence-value">
-            {{ tempo_medio_permanencia|default:"—" }}
-        </div>
-
-        <div class="mini-bars" aria-label="Permanência média por dia">
-            <span style="height: 48%"></span>
-            <span style="height: 61%"></span>
-            <span style="height: 54%"></span>
-            <span style="height: 72%"></span>
-            <span style="height: 64%"></span>
-            <span style="height: 81%"></span>
-            <span style="height: 69%"></span>
-        </div>
-
-        <div class="mini-bars-labels">
-            <span>Seg</span>
-            <span>Ter</span>
-            <span>Qua</span>
-            <span>Qui</span>
-            <span>Sex</span>
-            <span>Sáb</span>
-            <span>Dom</span>
-        </div>
-    </article>
-</section>
+    </div>
+</div>
 {% endblock %}
-
 {% block extra_scripts %}
-{{ faturamento_7_dias|json_script:"faturamento7DiasData" }}
-{{ status_reservas_json|json_script:"statusReservasData" }}
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const chartFont = {
-        family: 'Poppins',
-        size: 11
-    };
-
-    const green = '#00A676';
-    const darkGreen = '#046C4E';
-    const softGreen = 'rgba(0, 166, 118, 0.13)';
-    const gridColor = 'rgba(4, 108, 78, 0.08)';
-
-    const commonOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            },
-            tooltip: {
-                displayColors: false,
-                padding: 10,
-                cornerRadius: 8
-            }
-        }
-    };
-
-    const faturamentoData = [
-        { dia: '17/09', valor: 180 },
-        { dia: '18/09', valor: 240 },
-        { dia: '19/09', valor: 210 },
-        { dia: '20/09', valor: 320 },
-        { dia: '21/09', valor: 280 },
-        { dia: '22/09', valor: 390 },
-        { dia: '23/09', valor: 450 }
-    ];
-
-    new Chart(document.getElementById('faturamentoChart'), {
-        type: 'line',
-        data: {
-            labels: faturamentoData.map(item => item.dia),
-            datasets: [{
-                label: 'Faturamento',
-                data: faturamentoData.map(item => Number(item.valor) || 0),
-                borderColor: darkGreen,
-                backgroundColor: softGreen,
-                fill: true,
-                tension: 0.35,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-                pointBackgroundColor: '#ffffff',
-                pointBorderColor: green,
-                pointBorderWidth: 2,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            ...commonOptions,
-            scales: {
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: chartFont,
-                        color: '#7a8582'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: gridColor
-                    },
-                    ticks: {
-                        font: chartFont,
-                        color: '#7a8582',
-                        callback: value => 'R$ ' + value
-                    }
-                }
-            }
-        }
-    });
-
-    window.addEventListener('pageshow', function (event) {
-        if (event.persisted) {
-            window.location.reload();
-        }
-    });
-
-    new Chart(document.getElementById('reservasPorHorarioChart'), {
-        type: 'bar',
-        data: {
-            labels: ['8h', '10h', '12h', '14h', '16h', '18h', '20h'],
-            datasets: [{
-                label: 'Reservas',
-                data: [2, 5, 8, 12, 9, 7, 3],
-                backgroundColor: green,
-                borderRadius: 6,
-                barPercentage: 0.65
-            }]
-        },
-        options: {
-            ...commonOptions,
-            scales: {
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: chartFont,
-                        color: '#7a8582'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: gridColor
-                    },
-                    ticks: {
-                        stepSize: 4,
-                        font: chartFont,
-                        color: '#7a8582'
-                    }
-                }
-            }
-        }
-    });
-
-    const vagasTotal =
-        Number("{{ vagas_total|default:0 }}") || 0;
-
-    const vagasOcupadas =
-        Number("{{ vagas_ocupadas|default:0 }}") || 0;
-
-    const vagasLivres =
-        Number("{{ vagas_livres|default:0 }}") || 0;
-
-    const ocupacaoVagasData =
-        vagasTotal > 0
-            ? [vagasOcupadas, vagasLivres]
-            : [1];
-
-    const percentualLivres =
-        vagasTotal > 0
-            ? Math.round((vagasLivres / vagasTotal) * 100)
-            : 0;
-
-    document.getElementById('vagasLivresPercentual').textContent =
-        `${percentualLivres}%`;
-
-    document.getElementById('donutVagasPercentual').textContent =
-        `${percentualLivres}%`;
-
-    new Chart(document.getElementById('ocupacaoVagasChart'), {
-        type: 'doughnut',
-        data: {
-            labels: vagasTotal > 0
-                ? ['Ocupadas', 'Disponíveis']
-                : ['Sem dados'],
-
-            datasets: [{
-                data: ocupacaoVagasData,
-                backgroundColor: vagasTotal > 0
-                    ? ['#dcefe8', darkGreen]
-                    : ['#dcefe8'],
-                borderWidth: 0,
-                hoverOffset: 3
-            }]
-        },
-        options: {
-            ...commonOptions,
-            cutout: '76%'
-        }
-    });
-
-    const statusData = JSON.parse(
-        document.getElementById('statusReservasData').textContent
-    );
-
-    const statusChart = new Chart(
-        document.getElementById('statusReservasChart'),
-        {
-            type: 'doughnut',
-            data: {
-                labels: statusData.geral.labels,
-                datasets: [{
-                    data: statusData.geral.values,
-                    backgroundColor: statusData.geral.colors,
-                    borderWidth: 0,
-                    hoverOffset: 3
-                }]
-            },
-            options: {
-                ...commonOptions,
-                cutout: '74%'
-            }
-        }
-    );
-
-    const legend = document.getElementById('statusLegend');
-    const totalElement = document.getElementById('statusTotal');
-
-    function updateStatus(period) {
-        const selected = statusData[period];
-
-        statusChart.data.labels = selected.labels;
-        statusChart.data.datasets[0].data = selected.values;
-        statusChart.update();
-
-        totalElement.textContent = selected.values.reduce(
-            (sum, value) => sum + value,
-            0
-        );
-
-        legend.innerHTML = selected.labels.map((label, index) => `
-            <div class="status-row">
-                <span>
-                    <i style="background:${selected.colors[index]}"></i>
-                    ${label}
-                </span>
-
-                <strong>${selected.values[index]}</strong>
-            </div>
-        `).join('');
+    'use strict';
+    const root = document.getElementById('reservasDashboard');
+    const byId = id => document.getElementById(id);
+    const period = byId('dashboardPeriod'), month = byId('dashboardMonth');
+    const message = byId('dashboardMessage'), results = byId('dashboardResults');
+    const localCache = new Map(); // Só em memória nesta página, nunca no localStorage.
+    let activeRequest = null, requestVersion = 0, dailyChart = null, statusChart = null;
+    const colors = {confirmadas: '#637365', concluidas: '#3B5042', canceladas: '#97A697', horario_encerrado: '#7E7961', aguardando_pagamento: '#879A85', pendentes: '#A3AA92', outros: '#758181'};
+    const shortLabels = {horario_encerrado: 'Horário encerrado', concluidas: 'Concluídas'};
+    const number = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
+    const formatDay = value => {const [y, m, d] = String(value).split('-'); return `${d}/${m}/${y}`;};
+    const formatTime = value => new Intl.DateTimeFormat('pt-BR', {timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}).format(new Date(value));
+    const todayParts = new Intl.DateTimeFormat('en-CA', {timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit'}).formatToParts(new Date());
+    month.value = `${todayParts.find(p => p.type === 'year').value}-${todayParts.find(p => p.type === 'month').value}`;
+    const initial = new URLSearchParams(window.location.search);
+    if (['mes_atual', 'ultimos_7_dias', 'mes'].includes(initial.get('periodo'))) {
+        period.value = initial.get('periodo');
+        const year = initial.get('ano'), selectedMonth = initial.get('mes');
+        if (period.value === 'mes' && /^\d{4}$/.test(year || '') && /^\d{1,2}$/.test(selectedMonth || '')) month.value = `${year}-${selectedMonth.padStart(2, '0')}`;
     }
-
-    document
-        .getElementById('statusPeriodFilter')
-        .addEventListener('change', event => {
-            updateStatus(event.target.value);
-        });
-
-    updateStatus('geral');
+    function notice(text, error = false) {message.textContent = text; message.classList.toggle('vd-alert', error);}
+    function clearCharts() {
+        if (dailyChart) dailyChart.destroy(); if (statusChart) statusChart.destroy();
+        dailyChart = statusChart = null;
+        byId('dailyCanvasHolder').hidden = byId('statusCanvasHolder').hidden = true;
+    }
+    function clearPeriod() {
+        clearCharts();
+        ['metricTotal', 'metricConfirmed', 'metricCompleted', 'metricCancelled', 'dailyTotal'].forEach(id => byId(id).textContent = '—');
+        byId('statusLegend').replaceChildren(); byId('dailyTable').replaceChildren();
+        byId('dailyEmpty').hidden = byId('statusEmpty').hidden = false;
+        byId('dailyEmpty').textContent = byId('statusEmpty').textContent = 'Carregando período…';
+        byId('dashboardUpdated').textContent = '';
+        byId('dailyChartCaption').textContent = 'Período selecionado';
+    }
+    async function fetchData(params, signal) {
+        const url = new URL(root.dataset.endpoint, window.location.origin); url.search = params.toString();
+        const response = await fetch(url, {credentials: 'same-origin', cache: 'no-store', signal, headers: {'Accept': 'application/json'}});
+        if (response.status === 401 || response.redirected) {window.location.assign(root.dataset.loginUrl); throw new Error('Sua sessão expirou. Faça login novamente.');}
+        let data;
+        try {data = await response.json();} catch (_) {throw new Error('O servidor retornou uma resposta inválida.');}
+        if (!response.ok) throw new Error(data.detail || 'Não foi possível carregar os dados.');
+        return data;
+    }
+    function render(data) {
+        const summary = data.resumo, days = data.graficos.reservas_por_dia;
+        const statuses = data.graficos.situacao_reservas.filter(item => number(item.total) > 0);
+        const range = `${formatDay(data.periodo.inicio)} a ${formatDay(data.periodo.fim)}`;
+        byId('dashboardRange').textContent = byId('dailyChartCaption').textContent = range;
+        byId('dashboardUpdated').textContent = `Dados consultados em ${formatTime(data.gerado_em)} · São Paulo`;
+        const metrics = {metricTotal: 'total', metricConfirmed: 'confirmadas', metricCompleted: 'concluidas', metricCancelled: 'canceladas'};
+        Object.entries(metrics).forEach(([id, key]) => byId(id).textContent = number(summary[key]).toLocaleString('pt-BR'));
+        byId('dailyTotal').textContent = `${number(summary.total).toLocaleString('pt-BR')} reservas`;
+        const rows = document.createDocumentFragment();
+        days.forEach(item => {const row = document.createElement('tr'); [formatDay(item.data), number(item.total).toLocaleString('pt-BR')].forEach(text => {const cell = document.createElement('td'); cell.textContent = text; row.append(cell);}); rows.append(row);});
+        byId('dailyTable').replaceChildren(rows);
+        const list = document.createDocumentFragment();
+        statuses.forEach(item => {const row = document.createElement('li'), label = document.createElement('span'), total = document.createElement('strong'); label.textContent = item.rotulo; total.textContent = number(item.total).toLocaleString('pt-BR'); row.append(label, total); list.append(row);});
+        byId('statusLegend').replaceChildren(list);
+        clearCharts();
+        const empty = number(summary.total) === 0;
+        byId('dailyEmpty').hidden = byId('statusEmpty').hidden = !empty;
+        byId('dailyEmpty').textContent = byId('statusEmpty').textContent = 'Nenhuma reserva neste período.';
+        if (empty) {notice('Nenhuma reserva encontrada no período selecionado.'); return;}
+        if (typeof Chart === 'undefined') {
+            byId('dailyEmpty').hidden = false; byId('dailyEmpty').textContent = 'Consulte os valores na tabela abaixo.'; byId('dailyDetails').open = true;
+            notice('Os gráficos não carregaram. Consulte a tabela e a lista de situações.'); return;
+        }
+        byId('dailyCanvasHolder').hidden = byId('statusCanvasHolder').hidden = false;
+        const options = {responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: {legend: {display: false}, tooltip: {displayColors: false}},
+            scales: {x: {grid: {display: false}, ticks: {color: '#637365', font: {family: 'Poppins', size: 11}, maxRotation: 0, autoSkip: true, maxTicksLimit: 10}}, y: {beginAtZero: true, grid: {color: '#E8ECE6'}, ticks: {precision: 0, color: '#637365'}}}};
+        dailyChart = new Chart(byId('reservasPorDiaChart'), {type: 'bar', data: {labels: days.map(item => formatDay(item.data).slice(0, 5)), datasets: [{label: 'Reservas', data: days.map(item => number(item.total)), backgroundColor: '#3B5042', borderRadius: 4, maxBarThickness: 42}]}, options});
+        statusChart = new Chart(byId('statusReservasChart'), {type: 'bar',
+            data: {labels: statuses.map(item => shortLabels[item.status] || item.rotulo), datasets: [{label: 'Reservas', data: statuses.map(item => number(item.total)), backgroundColor: statuses.map(item => colors[item.status] || colors.outros), borderRadius: 4, maxBarThickness: 28}]},
+            options: {...options, indexAxis: 'y', scales: {x: {beginAtZero: true, ticks: {precision: 0, color: '#637365'}, grid: {color: '#E8ECE6'}}, y: {grid: {display: false}, ticks: {font: {size: 11, family: 'Poppins'}, color: '#637365'}}}}});
+        notice('Dados do período carregados.');
+    }
+    async function loadReservations() {
+        const version = ++requestVersion;
+        if (activeRequest) activeRequest.abort();
+        byId('dashboardMonthField').hidden = period.value !== 'mes'; month.required = period.value === 'mes';
+        clearPeriod();
+        if (period.value === 'mes' && (!month.value || !month.checkValidity())) {
+            results.setAttribute('aria-busy', 'false'); byId('dashboardRange').textContent = 'Escolha um mês e ano';
+            byId('dailyEmpty').textContent = byId('statusEmpty').textContent = 'Selecione um mês válido.';
+            notice('Selecione o mês e o ano para consultar.'); return;
+        }
+        results.setAttribute('aria-busy', 'true'); notice('Carregando reservas do período…'); byId('dashboardRange').textContent = 'Consultando período selecionado…';
+        const params = new URLSearchParams({secao: 'reservas', periodo: period.value});
+        if (period.value === 'mes') {const [year, selectedMonth] = month.value.split('-'); params.set('ano', year); params.set('mes', String(Number(selectedMonth)));}
+        const url = new URL(window.location.href);
+        ['periodo', 'ano', 'mes'].forEach(key => url.searchParams.delete(key));
+        ['periodo', 'ano', 'mes'].forEach(key => {if (params.has(key)) url.searchParams.set(key, params.get(key));});
+        window.history.replaceState(null, '', url);
+        const key = params.toString(), controller = new AbortController(); activeRequest = controller;
+        const timeout = window.setTimeout(() => controller.abort(), 40000);
+        try {
+            const cached = localCache.get(key); let data;
+            if (cached && cached.expires > Date.now()) data = cached.data;
+            else {
+                data = await fetchData(params, controller.signal);
+                if (version !== requestVersion) return;
+                const seconds = Math.min(60, number(data.cache && data.cache.expira_em_segundos));
+                localCache.set(key, {data, expires: Date.now() + seconds * 1000});
+                if (localCache.size > 12) localCache.delete(localCache.keys().next().value);
+            }
+            if (version === requestVersion) render(data);
+        } catch (error) {
+            if (version !== requestVersion) return;
+            clearPeriod(); byId('dashboardRange').textContent = 'Período indisponível';
+            byId('dailyEmpty').textContent = byId('statusEmpty').textContent = 'Dados indisponíveis.';
+            notice(error.name === 'AbortError' ? 'A consulta demorou mais que o esperado. Selecione o período novamente para tentar.' : error.message, true);
+        } finally {window.clearTimeout(timeout); if (version === requestVersion) {results.setAttribute('aria-busy', 'false'); activeRequest = null;}}
+    }
+    async function loadOccupancy() {
+        const controller = new AbortController(), timeout = window.setTimeout(() => controller.abort(), 40000);
+        try {
+            const data = await fetchData(new URLSearchParams({secao: 'ocupacao'}), controller.signal);
+            const total = number(data.vagas_total), occupied = Math.min(total, number(data.vagas_ocupadas));
+            byId('occupancyTotal').textContent = total.toLocaleString('pt-BR'); byId('occupancyOccupied').textContent = occupied.toLocaleString('pt-BR');
+            byId('occupancyAvailable').textContent = `${number(data.vagas_disponiveis).toLocaleString('pt-BR')} vagas disponíveis`;
+            byId('occupancyProgress').value = total ? occupied / total * 100 : 0; byId('occupancyProgress').hidden = total === 0;
+            byId('occupancyTime').textContent = `Consultado em ${formatTime(data.consultado_em)} · São Paulo`;
+        } catch (_) {byId('occupancyAvailable').textContent = 'Disponibilidade indisponível no momento.'; byId('occupancyTime').textContent = 'Reabra a página para tentar novamente.';}
+        finally {window.clearTimeout(timeout);}
+    }
+    byId('dashboardFilters').addEventListener('submit', event => event.preventDefault());
+    period.addEventListener('change', loadReservations);
+    month.addEventListener('change', () => {if (period.value === 'mes') loadReservations();});
+    window.addEventListener('pageshow', event => {if (event.persisted) {loadReservations(); loadOccupancy();}});
+    loadReservations(); loadOccupancy();
 });
 </script>
 {% endblock %}
