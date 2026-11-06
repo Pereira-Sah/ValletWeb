@@ -149,11 +149,12 @@
                 <h2>Seu próximo destino começa no Vallet</h2>
                 <p>Encontre vagas pelo aplicativo e acompanhe seu estacionamento pela web.</p>
                 <div class="app-buttons">
-                    <a href="#" class="btn-primary">Aplicativo</a>
+                    <a href="https://https://github.com/lariiscriis/ValletApp" class="btn-primary">Aplicativo</a>
                     <a href="{% url 'login' %}" class="btn-outline">Acesso do gestor</a>
                 </div>
             </div>
             <div class="app-image">
+                <!-- TODO: Substituir imagem por mockups do aplicativo e da web atualizados -->
                 <img src="{% static 'assets/mockups.png' %}" alt="Mockups Vallet">
             </div>
         </div>
@@ -178,19 +179,82 @@
     <!-- FOOTER -->
     <footer class="footer">
         <div class="container">
-            <div class="footer-top">
-                <a href="{% url 'appHome' %}" class="logo-link">
-                    <img src="{% static 'assets/vallet_logo.png' %}" alt="Vallet Logo" class="footer-logo">
-                </a>
-                <nav class="footer-links">
-                    <a href="#inicio">Início</a>
-                    <a href="#como-funciona">Como funciona</a>
-                    <a href="#beneficios">Benefícios</a>
-                    <a href="#contato">Contato</a>
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="{% url 'appHome' %}"
+                    class="footer-brand-link"
+                    aria-label="Vallet — página inicial">
+                        <img
+                            src="{% static 'assets/vallet_logo.png' %}"
+                            alt="Vallet"
+                            class="footer-logo"
+                            loading="lazy"
+                        >
+                    </a>
+
+                    <p class="footer-description">
+                        Tecnologia para conectar motoristas e estacionamentos.
+                    </p>
+                </div>
+
+                <nav class="footer-navigation" aria-labelledby="footer-explore-title">
+                    <h2 id="footer-explore-title" class="footer-title">
+                        Explore
+                    </h2>
+
+                    <ul class="footer-link-list">
+                        <li><a href="#inicio">Início</a></li>
+                        <li><a href="#como-funciona">Como funciona</a></li>
+                        <li><a href="#beneficios">Benefícios</a></li>
+                        <li>
+                            <a href="{% url 'login' %}">Acesso do gestor</a>
+                        </li>
+                    </ul>
                 </nav>
+
+                <div class="footer-project">
+                    <h2 class="footer-title">Sobre o projeto</h2>
+
+                    <p class="footer-project-description">
+                        Projeto acadêmico voltado à reserva de vagas
+                        e à gestão de estacionamentos.
+                    </p>
+
+                    <ul class="footer-link-list">
+                        <li>
+                            <a href="#contato">Entre em contato conosco</a>
+                        </li>
+                        <li>
+                            <a
+                                href="https://github.com/Pereira-Sah/ValletWeb"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <i class="bi bi-github" aria-hidden="true"></i>
+                                Conheça o projeto no GitHub
+                                <span class="footer-sr-only">
+                                    (abre em uma nova aba)
+                                </span>
+                                <i
+                                    class="bi bi-box-arrow-up-right footer-external-icon"
+                                    aria-hidden="true"
+                                ></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <hr class="footer-divider">
-            <p class="footer-copy">© Vallet. Todos os direitos reservados.</p>
+
+            <div class="footer-bottom">
+                <p class="footer-copy">
+                    © {% now "Y" %} Vallet. Desenvolvido como projeto acadêmico.
+                </p>
+
+                <a href="#inicio" class="footer-back-top">
+                    Voltar ao início
+                    <i class="bi bi-arrow-up" aria-hidden="true"></i>
+                </a>
+            </div>
         </div>
     </footer>
 </body>
