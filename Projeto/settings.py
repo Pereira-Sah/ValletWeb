@@ -163,3 +163,5 @@ API_TIMEOUT = float(os.environ.get("API_TIMEOUT", "6"))
 
 # Firebase REST API key (used only if you want server-side sign-in with email+password)
 FIREBASE_API_KEY = os.environ.get("FIREBASE_API_KEY", "")
+
+LOGIN_URL = "/login/"

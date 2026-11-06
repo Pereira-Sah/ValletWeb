@@ -1,5 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
+.caixa-cantoneira {
+  padding: 20px;
+  background: 
+    /* Canto Superior Esquerdo */
+    linear-gradient(to right, #333 10px, transparent 10px) no-repeat left top / 20px 2px,
+    linear-gradient(to bottom, #333 10px, transparent 10px) no-repeat left top / 2px 20px,
+    
+    /* Canto Superior Direito */
+    linear-gradient(to left, #333 10px, transparent 10px) no-repeat right top / 20px 2px,
+    linear-gradient(to bottom, #333 10px, transparent 10px) no-repeat right top / 2px 20px,
+    
+    /* Canto Inferior Esquerdo */
+    linear-gradient(to right, #333 10px, transparent 10px) no-repeat left bottom / 20px 2px,
+    linear-gradient(to top, #333 10px, transparent 10px) no-repeat left bottom / 2px 20px,
+    
+    /* Canto Inferior Direito */
+    linear-gradient(to left, #333 10px, transparent 10px) no-repeat right bottom / 20px 2px,
+    linear-gradient(to top, #333 10px, transparent 10px) no-repeat right bottom / 2px 20px;
+}
+
 /* Container principal */
 .notificacoes-container {
     min-height: calc(100vh - 70px);
@@ -76,7 +96,7 @@
 .filtro-select {
     width: 90%;
     padding: 8px 10px;
-    border: 1px solid #e1e5eb;
+    border: 1px solid #637365;
     border-radius: 8px;
     font-size: 0.8rem;
     transition: border-color 0.2s;
@@ -86,7 +106,7 @@
 .filtro-input:focus,
 .filtro-select:focus {
     outline: none;
-    border-color: var(--verde-escuro);
+    border-color: #637365;
     box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
 }
 
@@ -104,7 +124,7 @@
     appearance: none;
     width: 16px;
     height: 16px;
-    border: 2px solid var(--verde-escuro);
+    border: 2px solid #637365;
     border-radius: 5px;
     background-color: var(--fundo);
     cursor: pointer;
@@ -115,8 +135,8 @@
 }
 
 .filtro-check input[type="checkbox"]:checked {
-    background-color: var(--verde-medio);
-    border-color: var(--verde-escuro);
+    background-color: #637365;
+    border-color: #637365;
 }
 
 .filtro-check input[type="checkbox"]:checked::after {
@@ -131,7 +151,7 @@
 }
 
 .filtro-check input[type="checkbox"]:hover {
-    border-color: var(--verde-medio);
+    border-color: #637365;
 }
 
 .filtro-check input[type="checkbox"]:checked:hover {
@@ -139,10 +159,6 @@
     border-color: var(--verde-escuro);
 }
 
-.filtro-check input[type="checkbox"]:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
-}
 
 .filtro-check label {
     cursor: pointer;
@@ -168,6 +184,7 @@
     gap: 6px;
     font-size: 0.8rem;
     font-family: inherit;
+    color: #3B5042;
 }
 
 .btn-primary {
@@ -202,33 +219,50 @@
 
 /* Lista de notificações */
 .notificacoes-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    align-items: end;
+    gap: 30px;
+    justify-content: space-between;
+    justify-items: stretch;
 }
-
 /* Cards */
 .notificacao-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
     gap: 4px 12px;
-    background: white;
-    border-radius: 12px;
+    align-items: center;
+    min-height:140px ;
     padding: 12px 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border-left: 4px solid var(--verde-escuro);
+    /* border-left: 4px solid var(--verde-escuro); */
     transition: transform 0.2s, box-shadow 0.2s;
     animation: fadeIn 0.3s ease-out;
+    background: 
+    /* Canto Superior Esquerdo */
+    linear-gradient(to right, #cbd9c5 20px, transparent 20px) no-repeat left top / 20px 2px,
+    linear-gradient(to bottom,#cbd9c5 20px, transparent 20px) no-repeat left top / 2px 20px,
+    
+    /* Canto Superior Direito */
+    linear-gradient(to left,#cbd9c5 20px, transparent 20px) no-repeat right top / 20px 2px,
+    linear-gradient(to bottom,#cbd9c5 20px, transparent 20px) no-repeat right top / 2px 20px,
+    
+    /* Canto Inferior Esquerdo */
+    linear-gradient(to right,#cbd9c5 20px, transparent 20px) no-repeat left bottom / 20px 2px,
+    linear-gradient(to top,#cbd9c5 20px, transparent 20px) no-repeat left bottom / 2px 20px,
+    
+    /* Canto Inferior Direito */
+    linear-gradient(to left,#cbd9c5 20px, transparent 20px) no-repeat right bottom / 20px 2px,
+    linear-gradient(to top,#cbd9c5 20px, transparent 20px) no-repeat right bottom / 2px 20px;
 }
 
 .notificacao-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
-
+/* 
 .notificacao-card.nao-lida {
-    border-left-color: #ffc107;
-}
+    background-color: #ffc107;
+} */
 
 .notificacao-card.lida {
     border-left-color: var(--verde-medio);
@@ -249,6 +283,7 @@
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
+    color: #3B5042;
     overflow-wrap: anywhere;
 }
 
@@ -278,6 +313,7 @@
     grid-column: 2;
     grid-row: 1 / 4;
     align-self: start;
+    justify-content: flex-end;
     gap: 6px;
 }
 
@@ -300,6 +336,10 @@
 
 .btn-acao:hover {
     transform: scale(1.05);
+}
+
+.marcar-lida{
+    background-color:#cbd9c5;
 }
 
 /* Conteúdo do card */

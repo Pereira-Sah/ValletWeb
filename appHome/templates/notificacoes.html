@@ -18,7 +18,7 @@
         <form method="post" class="d-inline" id="marcar-todas-form"{% if not nao_lidas %} hidden{% endif %}>
             {% csrf_token %}
             <input type="hidden" name="acao" value="marcar_todas_como_lidas">
-            <button type="submit" class="btn-success btn-filtro">
+            <button type="submit" class="btn-filtro">
                 <i class="bi bi-check-all"></i> Marcar Todas Lidas
             </button>
         </form>
@@ -48,7 +48,8 @@
                 <!-- Tipo -->
                 <div class="filtro-grupo">
                     <label class="filtro-label" for="tipo">
-                        <i class="bi bi-tag me-1"></i>Tipo
+                        <i class="bi bi-tag me-1"></i>
+                        <label>Tipo</label>
                     </label>
                     <select name="tipo" id="tipo" class="filtro-select">
                         <option value="">Todos os tipos</option>
@@ -64,7 +65,8 @@
                 <!-- Placa/Motivo -->
                 <div class="filtro-grupo">
                     <label class="filtro-label" for="placa">
-                        <i class="bi bi-search me-1"></i>Placa ou Motivo
+                        <i class="bi bi-search me-1"></i>
+                        <label>Placa ou Motivo</label>
                     </label>
                     <input type="text" name="placa" id="placa" class="filtro-input" 
                            placeholder="Digite para buscar..." 
@@ -74,7 +76,8 @@
                 <!-- Data Início -->
                 <div class="filtro-grupo">
                     <label class="filtro-label" for="data_inicio">
-                        <i class="bi bi-calendar me-1"></i>Data Início
+                        <i class="bi bi-calendar me-1"></i>
+                        <label>Data Inicio</label>
                     </label>
                     <input type="date" name="data_inicio" id="data_inicio" 
                            class="filtro-input" value="{{ filtro_data_inicio }}">
@@ -83,7 +86,8 @@
                 <!-- Data Fim -->
                 <div class="filtro-grupo">
                     <label class="filtro-label" for="data_fim">
-                        <i class="bi bi-calendar me-1"></i>Data Fim
+                        <i class="bi bi-calendar me-1"></i>
+                        <label>Data Fim</label>
                     </label>
                     <input type="date" name="data_fim" id="data_fim" 
                            class="filtro-input" value="{{ filtro_data_fim }}">
@@ -104,10 +108,10 @@
 
                 <!-- Botões -->
                 <div class="filtros-botoes">
-                    <button type="submit" class="btn-filtro btn-primary">
+                    <button type="submit" class="btn-filtro">
                         <i class="bi bi-funnel-fill"></i> Aplicar Filtros
                     </button>
-                    <a href="{% url 'notificacoes_admin' %}" class="btn-filtro btn-secondary">
+                    <a href="{% url 'notificacoes_admin' %}" class="btn-filtro">
                         <i class="bi bi-x-circle"></i> Limpar
                     </a>
                 </div>
