@@ -4,6 +4,7 @@ from django.core.cache import cache
 
 RESUMO_CACHE_PREFIX = "notificacoes_resumo"
 NOME_CACHE_PREFIX = "nome_estacionamento"
+SIDEBAR_CACHE_PREFIX = "sidebar_estacionamento_v2"
 
 
 def _ttl(nome_config, padrao):
@@ -141,50 +142,50 @@ def obter_resumo_notificacoes(request, usar_cache=True):
     return resumo
 
 
-def _obter_nome_estacionamento(request, id_estacionamento):
-    if not id_estacionamento:
-        return ""
+def _obter_dados_estacionamento(request, id_estacionamento):
+    """Reutiliza a consulta de nome para trazer também a foto do estacionamento."""
+    vazio = {"nome_estacionamento": "", "foto_estacionamento": ""}
+    if not id_estacionamento or not request.session.get("id_token"):
+        return vazio
 
-    chave = chave_nome_estacionamento(id_estacionamento)
-    nome = cache.get(chave)
-
-    if nome is not None:
-        return nome
-
-    if not request.session.get("id_token"):
-        return ""
+    # Isola o cache por usuário e estacionamento; não reaproveita foto de outro vínculo.
+    chave = f"{SIDEBAR_CACHE_PREFIX}:{_uid_usuario(request)}:{id_estacionamento}"
+    dados_cache = cache.get(chave)
+    if isinstance(dados_cache, dict):
+        return dados_cache
 
     try:
         resposta = requests.get(
-            f"{_base_url()}/estacionamento/"
-            f"buscar_estacionamento/{id_estacionamento}",
+            f"{_base_url()}/estacionamento/buscar_estacionamento/{id_estacionamento}",
             headers=_headers(request, id_estacionamento),
             timeout=_timeout(),
         )
-
-        if resposta.status_code == 200:
-            nome = resposta.json().get("nome") or ""
-            definir_nome_estacionamento(id_estacionamento, nome)
-            return nome
-
-        print(
-            "[SIDEBAR ESTACIONAMENTO] "
-            f"HTTP {resposta.status_code}"
-        )
-
+        if resposta.status_code != 200:
+            print(f"[SIDEBAR ESTACIONAMENTO] HTTP {resposta.status_code}")
+            return vazio
+        dados = resposta.json()
+        if not isinstance(dados, dict):
+            return vazio
+        foto = dados.get("fotoEstacionamentoUri") or ""
+        # Imagens exibidas pelo navegador devem usar uma URL HTTP(S).
+        if not isinstance(foto, str) or not foto.strip().lower().startswith(("https://", "http://")):
+            foto = ""
+        resumo = {
+            "nome_estacionamento": str(dados.get("nome") or ""),
+            "foto_estacionamento": foto.strip(),
+        }
+        cache.set(chave, resumo, _ttl("SIDEBAR_ESTACIONAMENTO_TTL", 60))
+        return resumo
     except (requests.RequestException, ValueError) as erro:
-        print(
-            "[SIDEBAR ESTACIONAMENTO] "
-            f"Falha na consulta: {erro}"
-        )
-
-    return ""
+        print(f"[SIDEBAR ESTACIONAMENTO] Falha na consulta: {erro}")
+        return vazio
 
 
 def notificacoes_globais(request):
     contexto = {
         "notificacoes_nao_lidas": 0,
         "nome_estacionamento": "",
+        "foto_estacionamento": "",
     }
 
     if not request.user.is_authenticated:
@@ -215,9 +216,7 @@ def notificacoes_globais(request):
                 _ttl("NOTIFICACOES_RESUMO_TTL", 20),
             )
 
-    contexto["nome_estacionamento"] = _obter_nome_estacionamento(
-        request,
-        id_estacionamento,
-    )
+    contexto.update(_obter_dados_estacionamento(request, id_estacionamento))
 
     return contexto
+

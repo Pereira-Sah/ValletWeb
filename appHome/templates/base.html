@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% block extra_head %}
     {% endblock %}
-    <link rel="stylesheet" href="{% static 'admin.css' %}">
+    <link rel="stylesheet" href="{% static 'gestor.css' %}?v=gestor-ajustes-1">
     <link rel="icon" type="image/png" href="{% static 'assets/vallet_icon.png' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
@@ -27,12 +27,12 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="avatar">
-                    {% if fotoPerfil %}
-                        <img src="{{ fotoPerfil }}"
+                    {% if foto_estacionamento %}
+                        <img src="{{ foto_estacionamento }}"
                             class="profile-pic"
                             alt="Foto do estacionamento">
                     {% else %}
-                        <i class="bi bi-person-circle"></i>
+                        <i class="bi bi-building"></i>
                     {% endif %}
                 </div>
 

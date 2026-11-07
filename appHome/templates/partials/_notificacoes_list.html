@@ -1,6 +1,8 @@
 <span id="notificacoes-estado" hidden data-nao-lidas="{{ nao_lidas|default:0 }}"></span>
 
-{% if notificacoes %} {% for item in notificacoes %}
+{% if erro_notificacoes %}
+<div class="alert alert-danger" role="alert">{{ erro_notificacoes }}</div>
+{% elif notificacoes %} {% for item in notificacoes %}
 <div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %} caixa-cantoneira"
     id="notif-{{ item.id }}">
     <div>

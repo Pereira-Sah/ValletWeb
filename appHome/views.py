@@ -1,6 +1,7 @@
 import json
 import requests
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from django.contrib.auth.decorators import login_required
 from .models import NotificacaoAdmin
 from django.urls import reverse
@@ -272,9 +273,7 @@ def reservas(request):
 @never_cache
 @login_required(login_url="/login/")
 def gestor(request):
-    # Apenas a estrutura da página. Os dados vêm das rotas específicas abaixo.
-    # Não chama o dashboard antigo nem recalcula faturamento.
-    return render(request, "admin.html", {
+    return render(request, "dashboard.html", {
         "user_name": request.session.get("user_name", "Visitante"),
         "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
         "fotoPerfil": request.session.get("fotoPerfil", ""),
@@ -402,27 +401,39 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
 
         id_estacionamento = get_clean_id_estacionamento(self.request)
 
+        # A primeira abertura começa em hoje. Datas enviadas (inclusive vazias)
+        # são respeitadas para permitir consultar outros dias ou todo o histórico.
+        hoje = timezone.localdate(timezone=ZoneInfo("America/Sao_Paulo")).isoformat()
+        primeira_abertura = not any(
+            campo in self.request.GET for campo in ("data_inicio", "data_fim")
+        )
+        data_padrao = hoje if primeira_abertura else ""
+
         params = {
             "tipo": self.request.GET.get("tipo", "").strip(),
             "placa": self.request.GET.get("placa", "").strip(),
-            "data_inicio": self.request.GET.get("data_inicio", "").strip(),
-            "data_fim": self.request.GET.get("data_fim", "").strip(),
+            "data_inicio": self.request.GET.get("data_inicio", data_padrao).strip(),
+            "data_fim": self.request.GET.get("data_fim", data_padrao).strip(),
             "apenas_nao_lidas": "true" if apenas_nao_lidas_bool else None,
         }
 
         response = api_request("GET", "notificacoes/", self.request, params=params)
 
+        erro_notificacoes = ""
         if response is None:
             print("[NOTIFICAÇÕES] Não foi possível conectar à API.")
+            erro_notificacoes = "Não foi possível conectar à API de notificações. Tente novamente em instantes."
             api_data = {}
             notificacoes = []
         elif response.status_code != 200:
             print(f"[NOTIFICAÇÕES] A API respondeu com HTTP {response.status_code}.")
+            erro_notificacoes = f"Não foi possível carregar as notificações (HTTP {response.status_code}). Confira o terminal da API."
             api_data = {}
             notificacoes = []
         else:
             api_data = response.json()
             TIPOS_MAP = dict(NotificacaoAdmin.TIPOS_NOTIFICACAO)
+            TIPOS_MAP["reserva_iniciada"] = "Reserva iniciada"
             notificacoes_api = api_data.get("notificacoes", [])
             notificacoes = []
             for n in notificacoes_api:
@@ -443,6 +454,7 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
             "fotoPerfil": self.request.session.get("fotoPerfil", ""),
             "id_estacionamento": id_estacionamento,
             "notificacoes": notificacoes,
+            "erro_notificacoes": erro_notificacoes,
             "nao_lidas": api_data.get("nao_lidas", 0),
             "total_notificacoes": api_data.get("total", 0),
             "tipos_notificacao": api_data.get("tipos_notificacao", []),
@@ -507,3 +519,4 @@ class NotificacoesAPIView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': 'Payload JSON inválido'}, status=400)
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
