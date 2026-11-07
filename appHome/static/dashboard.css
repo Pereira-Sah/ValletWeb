@@ -7,8 +7,6 @@
     --vd-secondary: #637365;
     --vd-light: #cbd9c5;
     --vd-border: #dee4dc;
-    max-width: 1440px;
-    margin: 0 auto;
     color: #17241c;
 }
 .vallet-dashboard [hidden] {
@@ -404,7 +402,7 @@
     }
     .dashboard:has(.vallet-dashboard) > .main-content {
         overflow: visible;
-        padding: 24px 16px;
+        padding: 24px 16px 28px;
     }
     .vallet-dashboard .vd-header {
         flex-direction: column;
@@ -456,3 +454,4 @@
     cursor: default;
     text-decoration: none;
 }
+

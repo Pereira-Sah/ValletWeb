@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
-    <link rel="stylesheet" href="{% static 'login.css' %}" />
+    <link rel="stylesheet" href="{% static 'login.css' %}?v=login-modais-2" />
     <link rel="icon" type="image/png" href="{% static 'assets/vallet_icon.png' %}" />
 </head>
 <body>
@@ -25,7 +25,7 @@
                 <a href="{% url 'appHome' %}">Início</a>
                 <a href="{% url 'appHome' %}#como-funciona">Como funciona</a>
                 <a href="{% url 'appHome' %}#beneficios">Benefícios</a>
-                <a href="{% url 'appHome' %}#contato">Contato</a>
+                <button type="button" class="nav-contact-button" data-open-contact aria-haspopup="dialog" aria-controls="contato-modal">Contato</button>
             </nav>
         </div>
     </header>
@@ -58,7 +58,7 @@
                         </div>
 
                         <div class="forgot-password">
-                            <a href="#">Esqueceu sua senha?</a>
+                            <button type="button" data-open-password aria-haspopup="dialog" aria-controls="recuperar-senha-modal">Esqueceu sua senha?</button>
                         </div>
 
                         <button type="submit" class="btn-submit">Entrar</button>
@@ -67,7 +67,7 @@
                     <div class="login-footer">
                         <hr class="separator">
                         <p>Ainda não tem acesso?</p>
-                        <a href="{% url 'appHome' %}#contato" class="contact-link">Entre em contato conosco</a>
+                        <button type="button" class="contact-link" data-open-contact aria-haspopup="dialog" aria-controls="contato-modal">Entre em contato conosco</button>
                     </div>
                 </div>
 
@@ -82,6 +82,205 @@
             </div>
         </div>
     </main>
+
+    <!-- Contato: estrutura visual para integração com o backend existente. -->
+    <dialog id="contato-modal" class="contato-modal" aria-labelledby="contato-titulo" aria-describedby="contato-descricao">
+        <div class="contato-panel">
+            <header class="contato-header">
+                <div class="contato-heading">
+                    <span class="contato-icon" aria-hidden="true"><i class="bi bi-envelope"></i></span>
+                    <div>
+                        <p class="contato-eyebrow">EQUIPE VALLET</p>
+                        <h2 id="contato-titulo">Como podemos ajudar?</h2>
+                    </div>
+                </div>
+                <button type="button" class="contato-close" data-close-contact aria-label="Fechar contato">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </header>
+
+            <p id="contato-descricao" class="contato-description">
+                Solicite seu acesso ou fale com a nossa equipe.
+            </p>
+
+            <form id="contatoForm" class="contato-form" method="post">
+                {% csrf_token %}
+                <div class="contato-fields">
+                    <div class="contato-field">
+                        <label for="contato-nome">Nome</label>
+                        <input id="contato-nome" name="nome" type="text" autocomplete="name" placeholder="Seu nome" maxlength="100" required autofocus>
+                    </div>
+                    <div class="contato-field">
+                        <label for="contato-email">E-mail</label>
+                        <input id="contato-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" maxlength="254" required>
+                    </div>
+                    <div class="contato-field contato-field-wide">
+                        <label for="contato-estacionamento">Estacionamento <span>(opcional)</span></label>
+                        <input id="contato-estacionamento" name="estacionamento" type="text" autocomplete="organization" placeholder="Nome do estacionamento" maxlength="150">
+                    </div>
+                    <div class="contato-field contato-field-wide">
+                        <label for="contato-assunto">Assunto</label>
+                        <select id="contato-assunto" name="assunto" required>
+                            <option value="" selected disabled>Selecione o assunto</option>
+                            <option value="acesso">Solicitar acesso</option>
+                            <option value="suporte">Problema para entrar</option>
+                            <option value="outro">Outro assunto</option>
+                        </select>
+                    </div>
+                    <div class="contato-field contato-field-wide">
+                        <label for="contato-mensagem">Mensagem</label>
+                        <textarea id="contato-mensagem" name="mensagem" rows="4" maxlength="3000" placeholder="Conte como podemos ajudar você." required></textarea>
+                    </div>
+                </div>
+
+                <div id="contato-feedback" class="contato-feedback" role="status" aria-live="polite" hidden></div>
+
+                <footer class="contato-footer">
+                    <p>Responderemos pelo e-mail informado.</p>
+                    <div class="contato-actions">
+                        <button type="button" class="contato-cancel" data-close-contact>Cancelar</button>
+                        <button type="submit" class="contato-submit">
+                            <i class="bi bi-send" aria-hidden="true"></i>
+                            Enviar mensagem
+                        </button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </dialog>
+
+    <script>
+        (() => {
+            const modal = document.getElementById('contato-modal');
+            const form = document.getElementById('contatoForm');
+            let trigger;
+            let scrollAnterior = '';
+
+            document.querySelectorAll('[data-open-contact]').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (modal.open) return;
+                    trigger = button;
+                    const emailContato = document.getElementById('contato-email');
+                    if (!emailContato.value) {
+                        emailContato.value = document.getElementById('email').value.trim();
+                    }
+                    scrollAnterior = document.body.style.overflow;
+                    document.body.style.overflow = 'hidden';
+                    modal.showModal();
+                });
+            });
+
+            document.querySelectorAll('[data-close-contact]').forEach(button => {
+                button.addEventListener('click', () => modal.close());
+            });
+
+            modal.addEventListener('click', event => {
+                if (event.target !== modal) return;
+                const bounds = modal.getBoundingClientRect();
+                if (event.clientX < bounds.left || event.clientX > bounds.right ||
+                    event.clientY < bounds.top || event.clientY > bounds.bottom) {
+                    modal.close();
+                }
+            });
+
+            modal.addEventListener('close', () => {
+                document.body.style.overflow = scrollAnterior;
+                trigger?.focus();
+            });
+
+            // Apenas visual nesta entrega: conectar aqui o backend de contato.
+            // Impede que o formulário seja enviado por engano para a rota de login.
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+            });
+        })();
+    </script>
+
+    <!-- Recuperação de senha: formulário visual para integrar ao backend. -->
+    <dialog id="recuperar-senha-modal" class="contato-modal recuperar-senha-modal" aria-labelledby="recuperar-titulo" aria-describedby="recuperar-descricao">
+        <div class="contato-panel">
+            <header class="contato-header">
+                <div class="contato-heading">
+                    <span class="contato-icon" aria-hidden="true"><i class="bi bi-key"></i></span>
+                    <div>
+                        <p class="contato-eyebrow">RECUPERAR ACESSO</p>
+                        <h2 id="recuperar-titulo">Esqueceu sua senha?</h2>
+                    </div>
+                </div>
+                <button type="button" class="contato-close" data-close-password aria-label="Fechar recuperação de senha">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </header>
+
+            <p id="recuperar-descricao" class="contato-description">
+                Informe o e-mail cadastrado para recuperar seu acesso.
+            </p>
+
+            <form id="recuperarSenhaForm" class="contato-form" method="post">
+                {% csrf_token %}
+                <div class="contato-field">
+                    <label for="recuperar-email">E-mail cadastrado</label>
+                    <input id="recuperar-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" maxlength="254" required autofocus>
+                </div>
+
+                <div id="recuperar-feedback" class="contato-feedback" role="status" aria-live="polite" hidden></div>
+
+                <footer class="contato-footer recuperar-footer">
+                    <div class="contato-actions">
+                        <button type="button" class="contato-cancel" data-close-password>Voltar</button>
+                        <button type="submit" class="contato-submit">
+                            <i class="bi bi-envelope" aria-hidden="true"></i>
+                            Enviar link
+                        </button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </dialog>
+
+    <script>
+        (() => {
+            const modal = document.getElementById('recuperar-senha-modal');
+            const form = document.getElementById('recuperarSenhaForm');
+            const trigger = document.querySelector('[data-open-password]');
+            let scrollAnterior = '';
+
+            trigger.addEventListener('click', () => {
+                if (modal.open) return;
+                const email = document.getElementById('recuperar-email');
+                if (!email.value) {
+                    email.value = document.getElementById('email').value.trim();
+                }
+                scrollAnterior = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+                modal.showModal();
+            });
+
+            modal.querySelectorAll('[data-close-password]').forEach(button => {
+                button.addEventListener('click', () => modal.close());
+            });
+
+            modal.addEventListener('click', event => {
+                if (event.target !== modal) return;
+                const bounds = modal.getBoundingClientRect();
+                if (event.clientX < bounds.left || event.clientX > bounds.right ||
+                    event.clientY < bounds.top || event.clientY > bounds.bottom) {
+                    modal.close();
+                }
+            });
+
+            modal.addEventListener('close', () => {
+                document.body.style.overflow = scrollAnterior;
+                trigger.focus();
+            });
+
+            // Integração: conectar este submit ao endpoint de recuperação.
+            // Nesta entrega visual, não faz POST na rota de login nem simula envio.
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+            });
+        })();
+    </script>
 
     <!-- AUTENTICAÇÃO (Preservada integralmente) -->
     <script>

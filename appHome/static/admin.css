@@ -284,10 +284,22 @@ body {
 
 .main-content {
     flex: 1;
-    padding: 28px 32px 34px;
+    min-width: 0;
+    padding: 32px 48px 40px;
     overflow-y: auto;
     background: #f5f7f8;
 }
+
+/* Mesma largura e recuo para as três páginas do gestor. */
+.main-content > .vallet-dashboard,
+.main-content > .reservas-container,
+.main-content > .notificacoes-container {
+    width: 100%;
+    max-width: 1560px;
+    margin: 0 auto;
+    padding: 0;
+}
+
 
 .titulo-dashboard {
     margin: 0;
@@ -863,9 +875,15 @@ body {
     }
 }
 
+@media (max-width: 1180px) {
+    .main-content {
+        padding: 28px 24px 32px;
+    }
+}
+
 @media (max-width: 760px) {
     .main-content {
-        padding: 22px 16px 28px;
+        padding: 24px 16px 28px;
     }
 
     .dashboard-header {
@@ -916,3 +934,4 @@ body {
     font-weight: 700;
     line-height: 1.2;
 }
+
