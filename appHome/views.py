@@ -18,6 +18,11 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django.core.exceptions import PermissionDenied
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.mail import EmailMessage
+from django.core.validators import validate_email
+from django.views.decorators.http import require_POST
 
 from appHome.context_processors import (
     definir_nome_estacionamento,
@@ -520,3 +525,97 @@ class NotificacoesAPIView(LoginRequiredMixin, View):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+def _excedeu_limite(request, nome, maximo, janela_s):
+    """Limite simples por IP, para o formulário não virar canal de spam."""
+    chave = f"rl:{nome}:{request.META.get('REMOTE_ADDR', '')}"
+    cache.add(chave, 0, janela_s)
+    try:
+        return cache.incr(chave) > maximo
+    except ValueError:
+        cache.set(chave, 1, janela_s)
+        return False
+
+
+@require_POST
+def recuperar_senha(request):
+    email = request.POST.get("email", "").strip().lower()
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({"ok": False, "detail": "Informe um e-mail válido."}, status=400)
+
+    if _excedeu_limite(request, "recuperar", 5, 600):
+        return JsonResponse({"ok": False, "detail": "Muitas tentativas. Aguarde alguns minutos."}, status=429)
+
+    resp = api_request("POST", "auth/recuperar_senha", request, data={"email": email})
+
+    if resp is None or resp.status_code >= 500 or resp.status_code in (400, 403):
+        return JsonResponse(
+            {"ok": False, "detail": "Não foi possível enviar o link agora. Tente novamente em instantes."},
+            status=503,
+        )
+
+    return JsonResponse({
+        "ok": True,
+        "detail": "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.",
+    })
+
+
+ASSUNTOS_CONTATO = {
+    "acesso": "Solicitar acesso",
+    "suporte": "Problema para entrar",
+    "outro": "Outro assunto",
+}
+
+
+@require_POST
+def contato(request):
+    resposta_ok = JsonResponse({"ok": True, "detail": "Mensagem enviada! Responderemos pelo e-mail informado."})
+
+    if request.POST.get("website"):
+        return resposta_ok
+
+    nome = " ".join(request.POST.get("nome", "").split())[:100]
+    email = request.POST.get("email", "").strip()[:254]
+    estacionamento = " ".join(request.POST.get("estacionamento", "").split())[:150]
+    assunto = request.POST.get("assunto", "")
+    mensagem = request.POST.get("mensagem", "").strip()[:3000]
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({"ok": False, "detail": "Informe um e-mail válido."}, status=400)
+    if not nome or not mensagem or assunto not in ASSUNTOS_CONTATO:
+        return JsonResponse({"ok": False, "detail": "Preencha nome, assunto e mensagem."}, status=400)
+
+    if _excedeu_limite(request, "contato", 3, 600):
+        return JsonResponse({"ok": False, "detail": "Muitas mensagens. Aguarde alguns minutos."}, status=429)
+
+    corpo = (
+        f"Assunto: {ASSUNTOS_CONTATO[assunto]}\n"
+        f"Nome: {nome}\n"
+        f"E-mail: {email}\n"
+        f"Estacionamento: {estacionamento or '(não informado)'}\n\n"
+        f"{mensagem}"
+    )
+    try:
+        enviados = EmailMessage(
+            subject=f"[Vallet] {ASSUNTOS_CONTATO[assunto]} - {nome}",
+            body=corpo,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[settings.CONTATO_DESTINO],
+            reply_to=[email],
+        ).send()
+        if not enviados:
+            raise RuntimeError(
+                "Nenhum e-mail enviado: verifique EMAIL_HOST_USER, "
+                "EMAIL_HOST_PASSWORD e CONTATO_DESTINO."
+            )
+        print(f"[CONTATO] Mensagem enviada de {email} ({nome}) sobre '{assunto}'")
+    except Exception as e:
+        print(f"[CONTATO] Falha ao enviar e-mail: {e}")
+        return JsonResponse(
+            {"ok": False, "detail": "Não foi possível enviar agora. Tente novamente em instantes."},
+            status=503,
+        )
+    return resposta_ok

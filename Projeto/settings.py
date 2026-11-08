@@ -13,8 +13,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -161,7 +165,12 @@ NOME_ESTACIONAMENTO_TTL = int(
 )
 API_TIMEOUT = float(os.environ.get("API_TIMEOUT", "6"))
 
-# Firebase REST API key (used only if you want server-side sign-in with email+password)
-FIREBASE_API_KEY = os.environ.get("FIREBASE_API_KEY", "")
-
 LOGIN_URL = "/login/"
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+CONTATO_DESTINO = os.getenv("CONTATO_DESTINO", EMAIL_HOST_USER)

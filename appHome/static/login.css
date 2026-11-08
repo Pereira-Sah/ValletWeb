@@ -565,3 +565,7 @@ button.contact-link {
 .recuperar-footer {
     justify-content: flex-end;
 }
+
+.contato-feedback[data-estado="ok"]   { background:#e8f5e9; color:#1b5e20; }
+.contato-feedback[data-estado="erro"] { background:#fdecea; color:#b71c1c; }
+.contato-feedback { padding:10px 12px; border-radius:8px; font-size:.9rem; }

@@ -82,7 +82,34 @@
             </div>
         </div>
     </main>
-
+<script>
+async function enviarFormulario(form) {
+  const feedback = form.querySelector('.contato-feedback');
+  const botao = form.querySelector('.contato-submit');
+  const mostrar = (texto, ok) => {
+    feedback.textContent = texto;
+    feedback.dataset.estado = ok ? 'ok' : 'erro';
+    feedback.hidden = false;
+  };
+  botao.disabled = true;
+  feedback.hidden = true;
+  try {
+    const resp = await fetch(form.dataset.url, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+    const dados = await resp.json().catch(() => ({}));
+    const ok = resp.ok && dados.ok;
+    mostrar(dados.detail || (ok ? 'Enviado com sucesso.' : 'Não foi possível enviar agora.'), ok);
+    if (ok) form.reset();
+  } catch (e) {
+    mostrar('Erro de rede. Verifique sua conexão e tente novamente.', false);
+  } finally {
+    botao.disabled = false;
+  }
+}
+</script>
     <!-- Contato: estrutura visual para integração com o backend existente. -->
     <dialog id="contato-modal" class="contato-modal" aria-labelledby="contato-titulo" aria-describedby="contato-descricao">
         <div class="contato-panel">
@@ -103,8 +130,10 @@
                 Solicite seu acesso ou fale com a nossa equipe.
             </p>
 
-            <form id="contatoForm" class="contato-form" method="post">
+           <form id="contatoForm" class="contato-form" method="post" data-url="{% url 'contato_enviar' %}">
                 {% csrf_token %}
+                <input type="text" name="website" tabindex="-1" autocomplete="off"
+                    style="position:absolute;left:-9999px;opacity:0" aria-hidden="true">
                 <div class="contato-fields">
                     <div class="contato-field">
                         <label for="contato-nome">Nome</label>
@@ -192,6 +221,7 @@
             // Impede que o formulário seja enviado por engano para a rota de login.
             form.addEventListener('submit', event => {
                 event.preventDefault();
+                enviarFormulario(form);
             });
         })();
     </script>
@@ -216,7 +246,7 @@
                 Informe o e-mail cadastrado para recuperar seu acesso.
             </p>
 
-            <form id="recuperarSenhaForm" class="contato-form" method="post">
+            <form id="recuperarSenhaForm" class="contato-form" method="post" data-url="{% url 'recuperar_senha' %}">
                 {% csrf_token %}
                 <div class="contato-field">
                     <label for="recuperar-email">E-mail cadastrado</label>
@@ -278,6 +308,7 @@
             // Nesta entrega visual, não faz POST na rota de login nem simula envio.
             form.addEventListener('submit', event => {
                 event.preventDefault();
+                enviarFormulario(form);
             });
         })();
     </script>
