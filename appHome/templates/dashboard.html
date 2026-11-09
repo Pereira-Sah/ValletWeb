@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
-{% block extra_head %}
-<link
-    rel="stylesheet"
-    href="{% static 'dashboard.css' %}?v=gestor-ajustes-1"
-/>
-{% endblock %}
+
 {% block tituloPagina %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard.css' %}?v=gestor-ajustes-1" />
+{% endblock %}
+
 {% block content %}
 <div
     class="vallet-dashboard"
@@ -108,7 +108,7 @@
                     <canvas
                         id="reservasPorDiaChart"
                         role="img"
-                        aria-label="Reservas por dia. Valores também disponíveis na tabela abaixo."
+                        aria-label="Reservas por dia."
                     ></canvas>
                 </div>
             </article>
@@ -130,7 +130,7 @@
                     <canvas
                         id="statusReservasChart"
                         role="img"
-                        aria-label="Distribuição por situação. Valores descritos na lista abaixo."
+                        aria-label="Distribuição por situação."
                     ></canvas>
                 </div>
                 <ul
@@ -144,53 +144,29 @@
             <section class="vd-card vd-details">
                 <div class="vd-card-heading">
                     <div>
-                        <h2>Detalhes do período</h2>
-                        <p>Consulte os números usados nos gráficos.</p>
+                        <h2>Faturamento do período</h2>
+                        <p>Acompanhamento da receita gerada pelas reservas.</p>
                     </div>
-                    <a href="{% url 'reservas' %}" class="vd-link" id="dashboardReservationsLink" aria-disabled="true"
-                        >Ver reservas
-                        <i class="bi bi-arrow-up-right" aria-hidden="true"></i
-                    ></a>
+                    <span class="vd-pill" id="billingTotalLabel">Total: R$ —</span>
                 </div>
-                <details id="dailyDetails">
-                    <summary>Consultar dados em tabela</summary>
-                    <div
-                        class="vd-table-scroll"
-                        tabindex="0"
-                        role="region"
-                        aria-label="Tabela diária de reservas"
-                    >
-                        <table class="vd-table">
-                            <caption class="vd-sr-only">
-                                Quantidade de reservas por dia no período
-                                selecionado
-                            </caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Data</th>
-                                    <th scope="col">Reservas</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dailyTable">
-                                <tr>
-                                    <td colspan="2">Aguardando dados.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </details>
-                <p class="vd-note">
-                    Reservas com horário encerrado e ainda ativas aparecem
-                    separadamente, sem serem concluídas automaticamente.
-                </p>
-                <p class="vd-note">
-                    O status de conclusão não confirma o pagamento.
+                
+                <div class="vd-billing-summary" style="margin: 20px 0 10px;">
+                    <strong id="metricBilling" style="font-size: 28px; color: var(--vd-main);">R$ —</strong>
+                    <p class="vd-note" style="margin: 4px 0 0;">Soma dos valores associados às reservas no período selecionado.</p>
+                </div>
+
+                <div class="vd-canvas" id="billingCanvasHolder" style="height: 220px; margin-top: 16px;" hidden>
+                    <canvas
+                        id="faturamentoPorDiaChart"
+                        role="img"
+                        aria-label="Faturamento por dia no período selecionado."
+                    ></canvas>
+                </div>
+                <p class="vd-empty" id="billingEmpty">
+                    Nenhum faturamento registrado neste período.
                 </p>
             </section>
-            <aside
-                class="vd-card vd-occupancy"
-                aria-labelledby="occupancyTitle"
-            >
+            <aside class="vd-card vd-occupancy" aria-labelledby="occupancyTitle">
                 <div class="vd-card-heading">
                     <h2 id="occupancyTitle">Ocupação atual</h2>
                     <span class="vd-pill">Na consulta</span>
@@ -226,11 +202,12 @@
             month = byId("dashboardMonth");
         const message = byId("dashboardMessage"),
             results = byId("dashboardResults");
-        const localCache = new Map(); // Só em memória nesta página, nunca no localStorage.
+        const localCache = new Map();
         let activeRequest = null,
             requestVersion = 0,
             dailyChart = null,
-            statusChart = null;
+            statusChart = null,
+            billingChart = null;
         const colors = {
             confirmadas: "#637365",
             concluidas: "#3B5042",
@@ -287,14 +264,18 @@
         function clearCharts() {
             if (dailyChart) dailyChart.destroy();
             if (statusChart) statusChart.destroy();
-            dailyChart = statusChart = null;
+            if (billingChart) billingChart.destroy();
+            dailyChart = statusChart = billingChart = null;
             byId("dailyCanvasHolder").hidden = byId(
                 "statusCanvasHolder",
-            ).hidden = true;
+            ).hidden = byId("billingCanvasHolder").hidden = true;
         }
         function clearPeriod() {
-            byId("dashboardReservationsLink").removeAttribute("href");
-            byId("dashboardReservationsLink").setAttribute("aria-disabled", "true");
+            const resLink = byId("dashboardReservationsLink");
+            if (resLink) {
+                resLink.removeAttribute("href");
+                resLink.setAttribute("aria-disabled", "true");
+            }
             root.dataset.state = "loading";
             clearCharts();
             [
@@ -303,14 +284,38 @@
                 "metricCompleted",
                 "metricCancelled",
                 "dailyTotal",
-            ].forEach((id) => (byId(id).textContent = "—"));
-            byId("statusLegend").replaceChildren();
-            byId("dailyTable").replaceChildren();
-            byId("dailyEmpty").hidden = byId("statusEmpty").hidden = false;
-            byId("dailyEmpty").textContent = byId("statusEmpty").textContent =
-                "Carregando período…";
-            byId("dashboardUpdated").textContent = "";
-            byId("dailyChartCaption").textContent = "Período selecionado";
+                "metricBilling",
+            ].forEach((id) => {
+                const el = byId(id);
+                if (el) el.textContent = "—";
+            });
+            const billingLabel = byId("billingTotalLabel");
+            if (billingLabel) billingLabel.textContent = "Total: R$ —";
+            
+            const statusLegend = byId("statusLegend");
+            if (statusLegend) statusLegend.replaceChildren();
+            
+            const dailyEmpty = byId("dailyEmpty");
+            const statusEmpty = byId("statusEmpty");
+            if (dailyEmpty) {
+                dailyEmpty.hidden = false;
+                dailyEmpty.textContent = "Carregando período…";
+            }
+            if (statusEmpty) {
+                statusEmpty.hidden = false;
+                statusEmpty.textContent = "Carregando período…";
+            }
+            
+            const billingEmpty = byId("billingEmpty");
+            if (billingEmpty) {
+                billingEmpty.hidden = false;
+            }
+            
+            const dashUpdated = byId("dashboardUpdated");
+            if (dashUpdated) dashUpdated.textContent = "";
+            
+            const dailyCaption = byId("dailyChartCaption");
+            if (dailyCaption) dailyCaption.textContent = "Período selecionado";
         }
         async function fetchData(params, signal) {
             const url = new URL(root.dataset.endpoint, window.location.origin);
@@ -338,48 +343,50 @@
             return data;
         }
         function render(data) {
-            const reservationsUrl = new URL("{% url 'reservas' %}", window.location.origin);
-            reservationsUrl.searchParams.set("data_inicio", data.periodo.inicio);
-            reservationsUrl.searchParams.set("data_fim", data.periodo.fim);
-            byId("dashboardReservationsLink").href = reservationsUrl.toString();
-            byId("dashboardReservationsLink").removeAttribute("aria-disabled");
+            const reservationsLink = byId("dashboardReservationsLink");
+            if (reservationsLink) {
+                const reservationsUrl = new URL("{% url 'reservas' %}", window.location.origin);
+                reservationsUrl.searchParams.set("data_inicio", data.periodo.inicio);
+                reservationsUrl.searchParams.set("data_fim", data.periodo.fim);
+                reservationsLink.href = reservationsUrl.toString();
+                reservationsLink.removeAttribute("aria-disabled");
+            }
+            
             const summary = data.resumo,
                 days = data.graficos.reservas_por_dia;
+            
             const statuses = data.graficos.situacao_reservas.filter(
                 (item) => number(item.total) > 0,
             );
+            
             const range = `${formatDay(data.periodo.inicio)} a ${formatDay(data.periodo.fim)}`;
             byId("dailyChartCaption").textContent = range;
             byId("dashboardUpdated").textContent =
                 `Dados consultados em ${formatTime(data.gerado_em)} · São Paulo`;
+            
             const metrics = {
                 metricTotal: "total",
                 metricConfirmed: "confirmadas",
                 metricCompleted: "concluidas",
                 metricCancelled: "canceladas",
             };
+            
             Object.entries(metrics).forEach(
                 ([id, key]) =>
                     (byId(id).textContent = number(summary[key]).toLocaleString(
                         "pt-BR",
                     )),
             );
+            
             byId("dailyTotal").textContent =
                 `${number(summary.total).toLocaleString("pt-BR")} ${number(summary.total) === 1 ? "reserva" : "reservas"}`;
-            const rows = document.createDocumentFragment();
-            days.forEach((item) => {
-                const row = document.createElement("tr");
-                [
-                    formatDay(item.data),
-                    number(item.total).toLocaleString("pt-BR"),
-                ].forEach((text) => {
-                    const cell = document.createElement("td");
-                    cell.textContent = text;
-                    row.append(cell);
-                });
-                rows.append(row);
-            });
-            byId("dailyTable").replaceChildren(rows);
+            
+            const diasBilling = (data.graficos && data.graficos.faturamento_por_dia) || [];
+            const totalBilling = (summary && summary.faturamento_total) || 0;
+            
+            byId("metricBilling").textContent = "R$ " + Number(totalBilling).toLocaleString("pt-BR", {minimumFractionDigits: 2});
+            byId("billingTotalLabel").textContent = "Total: R$ " + Number(totalBilling).toLocaleString("pt-BR", {minimumFractionDigits: 2});
+            
             const list = document.createDocumentFragment();
             statuses.forEach((item) => {
                 const row = document.createElement("li"),
@@ -391,30 +398,40 @@
                 list.append(row);
             });
             byId("statusLegend").replaceChildren(list);
+            
             clearCharts();
+            
             const empty = number(summary.total) === 0;
             byId("dailyEmpty").hidden = byId("statusEmpty").hidden = !empty;
             byId("dailyEmpty").textContent = byId("statusEmpty").textContent =
                 "Nenhuma reserva neste período.";
+            
+            const billingEmpty = diasBilling.length === 0 || Number(totalBilling) === 0;
+            byId("billingEmpty").hidden = !billingEmpty;
+
             if (empty) {
                 root.dataset.state = "empty";
                 notice("");
                 return;
             }
+            
             if (typeof Chart === "undefined") {
                 root.dataset.state = "ready";
                 byId("dailyEmpty").hidden = false;
                 byId("dailyEmpty").textContent =
-                    "Consulte os valores na tabela abaixo.";
-                byId("dailyDetails").open = true;
-                notice(
-                    "Os gráficos não carregaram. Consulte a tabela e a lista de situações.",
-                );
+                    "Os gráficos não puderam ser carregados.";
+                notice("Os gráficos não carregaram.");
                 return;
             }
+            
             byId("dailyCanvasHolder").hidden = byId(
                 "statusCanvasHolder",
             ).hidden = false;
+
+            if (!billingEmpty) {
+                byId("billingCanvasHolder").hidden = false;
+            }
+
             const options = {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -441,6 +458,7 @@
                     },
                 },
             };
+            
             dailyChart = new Chart(byId("reservasPorDiaChart"), {
                 type: "bar",
                 data: {
@@ -459,6 +477,7 @@
                 },
                 options,
             });
+            
             statusChart = new Chart(byId("statusReservasChart"), {
                 type: "bar",
                 data: {
@@ -496,6 +515,57 @@
                     },
                 },
             });
+
+            if (!billingEmpty) {
+                billingChart = new Chart(byId("faturamentoPorDiaChart"), {
+                    type: "bar",
+                    data: {
+                        labels: diasBilling.map((item) => formatDay(item.data).slice(0, 5)),
+                        datasets: [
+                            {
+                                label: "Faturamento",
+                                data: diasBilling.map((item) => number(item.valor)),
+                                backgroundColor: "#3B5042",
+                                borderRadius: 4,
+                                maxBarThickness: 42,
+                            },
+                        ],
+                    },
+                    options: {
+                        ...options,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return "R$ " + context.parsed.y.toLocaleString("pt-BR", {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    color: "#637365",
+                                    font: { family: "Poppins", size: 11 },
+                                },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: "#E8ECE6" },
+                                ticks: { 
+                                    color: "#637365",
+                                    callback: function(value) {
+                                        return "R$ " + value.toLocaleString("pt-BR");
+                                    }
+                                },
+                            },
+                        },
+                    },
+                });
+            }
+
             root.dataset.state = "ready";
             notice("");
         }
