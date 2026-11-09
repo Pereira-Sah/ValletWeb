@@ -465,24 +465,31 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
         return [self.template_name]
 
     def get_context_data(self, **kwargs):
+        from datetime import timedelta
+        
         apenas_nao_lidas_raw = self.request.GET.get("apenas_nao_lidas", "")
         apenas_nao_lidas_bool = True if apenas_nao_lidas_raw in ["on", "true", "1", "True"] else False
 
         id_estacionamento = get_clean_id_estacionamento(self.request)
 
-        # A primeira abertura começa em hoje. Datas enviadas (inclusive vazias)
+        # A primeira abertura começa nos últimos 7 dias. Datas enviadas (inclusive vazias)
         # são respeitadas para permitir consultar outros dias ou todo o histórico.
-        hoje = timezone.localdate(timezone=ZoneInfo("America/Sao_Paulo")).isoformat()
+        hoje_obj = timezone.localdate(timezone=ZoneInfo("America/Sao_Paulo"))
+        hoje_str = hoje_obj.isoformat()
+        sete_dias_atras_str = (hoje_obj - timedelta(days=7)).isoformat()
+        
         primeira_abertura = not any(
             campo in self.request.GET for campo in ("data_inicio", "data_fim")
         )
-        data_padrao = hoje if primeira_abertura else ""
+        
+        data_inicio_padrao = sete_dias_atras_str if primeira_abertura else ""
+        data_fim_padrao = hoje_str if primeira_abertura else ""
 
         params = {
             "tipo": self.request.GET.get("tipo", "").strip(),
             "placa": self.request.GET.get("placa", "").strip(),
-            "data_inicio": self.request.GET.get("data_inicio", data_padrao).strip(),
-            "data_fim": self.request.GET.get("data_fim", data_padrao).strip(),
+            "data_inicio": self.request.GET.get("data_inicio", data_inicio_padrao).strip(),
+            "data_fim": self.request.GET.get("data_fim", data_fim_padrao).strip(),
             "apenas_nao_lidas": "true" if apenas_nao_lidas_bool else None,
         }
 
@@ -509,13 +516,6 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
                 n = dict(n)
                 n["tipo_display"] = TIPOS_MAP.get(n.get("tipo"), n.get("tipo"))
                 notificacoes.append(n)
-            # print(
-            #     "[NOTIFICAÇÕES]",
-            #     f"Estacionamento da sessão: {id_estacionamento}",
-            #     f"Estacionamento da API: {api_data.get('id_estacionamento')}",
-            #     f"Quantidade retornada: {len(notificacoes)}",
-            #     f"retornados: {notificacoes}",
-            # )
             
         return {
             "user_name": self.request.session.get("user_name", "Visitante"),

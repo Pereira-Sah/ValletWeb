@@ -1,10 +1,5 @@
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
-import {
-    getAuth,
-    initializeAuth,
-    inMemoryPersistence,
-    signInWithCustomToken,
-} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { getAuth, initializeAuth, inMemoryPersistence, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const APP_NAME = "vallet-web-chat";
