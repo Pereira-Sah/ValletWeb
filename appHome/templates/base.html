@@ -67,6 +67,16 @@
                     <span>Reservas</span>
                 </a>
 
+                <a href="{% url 'chat' %}"
+                id="navbar-chat-link"
+                {% if request.resolver_match.url_name == 'chat' %}
+                aria-current="page"
+                {% endif %}>
+                    <i class="bi bi-chat-dots-fill"></i>
+                    <span>Chat</span>
+                    <span class="badge" id="navbar-chat-count" hidden>0</span>
+                </a>
+
                 <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on"
                 {% if request.resolver_match.url_name == 'notificacoes_admin' %}
                 aria-current="page"
@@ -96,6 +106,13 @@
 
         <div id="notification-toast-container"></div>
     </div>
+
+    {% if firebase_chat_config %}
+    {{ firebase_chat_config|json_script:"firebase-chat-config" }}
+    {% if request.resolver_match.url_name != 'chat' %}
+    <script type="module" src="{% static 'chat_badge.js' %}?v=chat-2"></script>
+    {% endif %}
+    {% endif %}
 
     {% block extra_scripts %}
     {% endblock %}

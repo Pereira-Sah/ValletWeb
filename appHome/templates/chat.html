@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block tituloPagina %}Chat{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'chat.css' %}?v=chat-1">
+{% endblock %}
+
+{% block content %}
+<div
+    class="chat-page"
+    id="chatPage"
+    data-estacionamento-id="{{ id_estacionamento }}"
+    data-estacionamento-nome="{{ nome_estacionamento|default:'' }}"
+>
+    <header class="chat-page-header">
+        <div>
+            <h1 class="page-title">Chat</h1>
+            <p>Fale diretamente com a equipe do Vallet.</p>
+        </div>
+    </header>
+
+        <div class="chat-main">
+            <header class="chat-main-header">
+                <div class="chat-avatar" aria-hidden="true">AD</div>
+                <div>
+                    <strong>Administrador</strong>
+                    <small>Equipe Vallet</small>
+                </div>
+            </header>
+
+            <div
+                class="chat-messages"
+                id="chatMessages"
+                aria-live="polite"
+                aria-busy="true"
+            >
+                <p class="chat-empty">Carregando conversa…</p>
+            </div>
+
+            <form class="chat-composer" id="chatForm" autocomplete="off">
+                <label class="chat-sr-only" for="chatInput">Mensagem</label>
+                <textarea
+                    id="chatInput"
+                    name="mensagem"
+                    rows="1"
+                    maxlength="4000"
+                    placeholder="Descreva o problema ou o que precisa ser alterado…"
+                    required
+                ></textarea>
+                <button type="submit" id="chatSend">
+                    <i class="bi bi-send-fill" aria-hidden="true"></i>
+                    <span>Enviar</span>
+                </button>
+            </form>
+
+            <div class="chat-feedback" id="chatFeedback" role="alert" hidden></div>
+        </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" src="{% static 'chat.js' %}?v=chat-2"></script>
+{% endblock %}

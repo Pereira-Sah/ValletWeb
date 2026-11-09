@@ -220,3 +220,37 @@ def notificacoes_globais(request):
 
     return contexto
 
+
+def chat_global(request):
+    """Configuração pública do Firebase usada pelo chat em tempo real.  """
+    if not request.user.is_authenticated:
+        return {"firebase_chat_config": None}
+
+    from django.urls import reverse
+
+    config = {
+        "apiKey": getattr(settings, "FIREBASE_WEB_API_KEY", ""),
+        "authDomain": getattr(settings, "FIREBASE_AUTH_DOMAIN", ""),
+        "projectId": getattr(settings, "FIREBASE_PROJECT_ID", ""),
+    }
+
+    app_id = getattr(settings, "FIREBASE_APP_ID", "")
+    if app_id:
+        config["appId"] = app_id
+
+    sender_id = getattr(settings, "FIREBASE_MESSAGING_SENDER_ID", "")
+    if sender_id:
+        config["messagingSenderId"] = sender_id
+
+    return {
+        "firebase_chat_config": {
+            **config,
+            "tokenUrl": reverse("chat_token"),
+            "chatUrl": reverse("chat"),
+            "collection": getattr(settings, "CHAT_COLLECTION", "chat"),
+            "estacionamentoId": str(
+                request.session.get("id_estacionamento") or ""
+            ).strip(),
+        }
+    }
+

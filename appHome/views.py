@@ -286,6 +286,70 @@ def gestor(request):
 
 
 @never_cache
+@login_required(login_url="/login/")
+def chat(request):
+    return render(request, "chat.html", {
+        "user_name": request.session.get("user_name", "Visitante"),
+        "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
+        "fotoPerfil": request.session.get("fotoPerfil", ""),
+        "id_estacionamento": get_clean_id_estacionamento(request),
+    })
+
+
+@never_cache
+@require_GET
+@login_required(login_url="/login/")
+def chat_token(request):
+    """Entrega ao navegador um token de curta duração para o Firestore."""
+    if not request.session.get("id_token"):
+        return JsonResponse(
+            {"detail": "Sua sessão expirou. Faça login novamente.",
+             "login_url": reverse("login")},
+            status=401,
+        )
+
+    try:
+        resposta = api_request("POST", "chat/token", request, timeout=15)
+    except PermissionDenied:
+        return JsonResponse(
+            {"detail": "Sua sessão expirou. Faça login novamente.",
+             "login_url": reverse("login")},
+            status=401,
+        )
+
+    if resposta is None:
+        return JsonResponse(
+            {"detail": "Não foi possível conectar à API do chat."},
+            status=503,
+        )
+
+    try:
+        dados = resposta.json()
+    except ValueError:
+        return JsonResponse(
+            {"detail": "A API retornou uma resposta inválida para o chat."},
+            status=502,
+        )
+
+    if resposta.status_code != 200:
+        detalhe = dados.get("detail") if isinstance(dados, dict) else None
+        if not isinstance(detalhe, str) or not detalhe:
+            detalhe = "Não foi possível iniciar o chat."
+        status_code = resposta.status_code if resposta.status_code in (
+            400, 401, 403, 404, 422, 503
+        ) else 502
+        return JsonResponse({"detail": detalhe}, status=status_code)
+
+    if not isinstance(dados, dict) or not dados.get("token"):
+        return JsonResponse(
+            {"detail": "A API não retornou um token de chat válido."},
+            status=502,
+        )
+
+    return JsonResponse(dados)
+
+
+@never_cache
 @require_GET
 def gestor_dashboard_dados(request):
     """Proxy autenticado: o token Firebase nunca é enviado ao JavaScript."""

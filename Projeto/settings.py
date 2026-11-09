@@ -75,6 +75,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'appHome.context_processors.notificacoes_globais',
+                'appHome.context_processors.chat_global',
             ],
         },
     },
@@ -174,3 +175,20 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 CONTATO_DESTINO = os.getenv("CONTATO_DESTINO", EMAIL_HOST_USER)
+# chat
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "valletprojeto-ce6f6")
+FIREBASE_WEB_API_KEY = os.getenv(
+    "FIREBASE_WEB_API_KEY",
+    "AIzaSyAmbUqB1PQPPsXHd_CwiVoDR_emoCEfLUw",
+)
+FIREBASE_AUTH_DOMAIN = os.getenv(
+    "FIREBASE_AUTH_DOMAIN",
+    f"{FIREBASE_PROJECT_ID}.firebaseapp.com",
+)
+FIREBASE_STORAGE_BUCKET = os.getenv(
+    "FIREBASE_STORAGE_BUCKET",
+    f"{FIREBASE_PROJECT_ID}.firebasestorage.app",
+)
+FIREBASE_MESSAGING_SENDER_ID = os.getenv("FIREBASE_MESSAGING_SENDER_ID", "")
+FIREBASE_APP_ID = os.getenv("FIREBASE_APP_ID", "")
+CHAT_COLLECTION = os.getenv("CHAT_COLLECTION", "chat")
