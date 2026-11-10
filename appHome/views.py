@@ -516,7 +516,16 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
                 n = dict(n)
                 n["tipo_display"] = TIPOS_MAP.get(n.get("tipo"), n.get("tipo"))
                 notificacoes.append(n)
-            
+            tipos_api = api_data.get("tipos_notificacao", [])
+            if not tipos_api:
+                tipos_api = list(TIPOS_MAP.keys())
+
+            tipos_formatados = []
+            for tipo_codigo in tipos_api:
+                tipos_formatados.append({
+                    "codigo": tipo_codigo,
+                    "label": TIPOS_MAP.get(tipo_codigo, tipo_codigo.replace("_", " ").capitalize())
+                })
         return {
             "user_name": self.request.session.get("user_name", "Visitante"),
             "user_cargo": self.request.session.get("user_cargo", "Cargo Desconhecido"),
@@ -526,7 +535,7 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
             "erro_notificacoes": erro_notificacoes,
             "nao_lidas": api_data.get("nao_lidas", 0),
             "total_notificacoes": api_data.get("total", 0),
-            "tipos_notificacao": api_data.get("tipos_notificacao", []),
+            "tipos_notificacao": tipos_formatados,
             "filtro_tipo": params["tipo"],
             "filtro_placa": params["placa"],
             "filtro_data_inicio": params["data_inicio"],

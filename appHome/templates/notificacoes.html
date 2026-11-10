@@ -47,10 +47,10 @@
                 <label class="filtro-label" for="tipo">Tipo</label>
                 <select name="tipo" id="tipo" class="filtro-select">
                     <option value="">Todos os tipos</option>
-                    {% for tipo_code in tipos_notificacao %}
-                    <option value="{{ tipo_code }}"
-                        {% if filtro_tipo == tipo_code %}selected{% endif %}>
-                        {{ tipo_code|capfirst }}
+                    {% for tipo in tipos_notificacao %}
+                    <option value="{{ tipo.codigo }}"
+                        {% if filtro_tipo == tipo.codigo %}selected{% endif %}>
+                        {{ tipo.label }}
                     </option>
                     {% endfor %}
                 </select>
