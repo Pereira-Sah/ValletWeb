@@ -115,10 +115,7 @@
 /* Lista */
 .reservas-container .reservas-grid {
     display: grid;
-    grid-template-columns: repeat(
-        auto-fill,
-        minmax(min(100%, 280px), 1fr)
-    );
+    grid-template-columns: repeat(auto-fill,minmax(min(100%, 250px), 1fr));
     align-items: stretch;
     gap: 14px;
 }
@@ -147,7 +144,7 @@
 .reservas-container .info-basica {
     display: flex;
     align-items: center;
-    flex: 1 1 170px;
+    flex: 1 1 auto;
     min-width: 0;
     gap: 8px;
 }
@@ -278,6 +275,10 @@
     font-size: 0.85rem;
     font-weight: 500;
     text-decoration: none;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden; 
+    text-overflow: ellipsis; /* Se não couber, coloca "..." */
 }
 
 .reservas-container .btn-whats:hover {
@@ -347,11 +348,5 @@
 
     .reservas-container .reservas-grid {
         grid-template-columns: 1fr;
-    }
-}
-
-@media (min-width: 1600px) {
-    .reservas-container .reservas-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }

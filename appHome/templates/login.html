@@ -189,8 +189,6 @@ async function enviarFormulario(form) {
                     if (!emailContato.value) {
                         emailContato.value = document.getElementById('email').value.trim();
                     }
-                    scrollAnterior = document.body.style.overflow;
-                    document.body.style.overflow = 'hidden';
                     modal.showModal();
                 });
             });
@@ -209,12 +207,9 @@ async function enviarFormulario(form) {
             });
 
             modal.addEventListener('close', () => {
-                document.body.style.overflow = scrollAnterior;
-                trigger?.focus();
+                trigger?.focus({ preventScroll: true });
             });
 
-            // Apenas visual nesta entrega: conectar aqui o backend de contato.
-            // Impede que o formulário seja enviado por engano para a rota de login.
             form.addEventListener('submit', event => {
                 event.preventDefault();
                 enviarFormulario(form);
@@ -277,8 +272,6 @@ async function enviarFormulario(form) {
                 if (!email.value) {
                     email.value = document.getElementById('email').value.trim();
                 }
-                scrollAnterior = document.body.style.overflow;
-                document.body.style.overflow = 'hidden';
                 modal.showModal();
             });
 
@@ -296,12 +289,9 @@ async function enviarFormulario(form) {
             });
 
             modal.addEventListener('close', () => {
-                document.body.style.overflow = scrollAnterior;
-                trigger.focus();
+                trigger.focus({ preventScroll: true });
             });
 
-            // Integração: conectar este submit ao endpoint de recuperação.
-            // Nesta entrega visual, não faz POST na rota de login nem simula envio.
             form.addEventListener('submit', event => {
                 event.preventDefault();
                 enviarFormulario(form);
@@ -309,7 +299,6 @@ async function enviarFormulario(form) {
         })();
     </script>
 
-    <!-- AUTENTICAÇÃO (Preservada integralmente) -->
     <script>
       document
         .getElementById("loginForm")
