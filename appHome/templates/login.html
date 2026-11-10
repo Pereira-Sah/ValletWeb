@@ -49,10 +49,6 @@
                             <input type="email" id="email" placeholder="Email" required />
                         </div>
                         <div class="input-group">
-                            <i class="bi bi-key"></i>
-                            <input type="text" id="accessCode" placeholder="Código de Acesso" required />
-                        </div>
-                        <div class="input-group">
                             <i class="bi bi-lock"></i>
                             <input type="password" id="password" placeholder="Senha" required />
                         </div>
@@ -322,7 +318,6 @@ async function enviarFormulario(form) {
 
           const email = document.getElementById("email").value;
           const password = document.getElementById("password").value;
-          const accessCode = document.getElementById("accessCode").value;
 
           try {
             const resp = await fetch("/auth/firebase/", {
@@ -331,8 +326,6 @@ async function enviarFormulario(form) {
               body: JSON.stringify({
                 email: email,
                 password: password,
-                codigo_acesso: accessCode,
-                access_code: accessCode,
               }),
             });
 
