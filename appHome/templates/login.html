@@ -179,7 +179,6 @@ async function enviarFormulario(form) {
             const modal = document.getElementById('contato-modal');
             const form = document.getElementById('contatoForm');
             let trigger;
-            let scrollAnterior = '';
 
             document.querySelectorAll('[data-open-contact]').forEach(button => {
                 button.addEventListener('click', () => {
@@ -210,6 +209,8 @@ async function enviarFormulario(form) {
                 trigger?.focus({ preventScroll: true });
             });
 
+            // Apenas visual nesta entrega: conectar aqui o backend de contato.
+            // Impede que o formulário seja enviado por engano para a rota de login.
             form.addEventListener('submit', event => {
                 event.preventDefault();
                 enviarFormulario(form);
@@ -264,7 +265,6 @@ async function enviarFormulario(form) {
             const modal = document.getElementById('recuperar-senha-modal');
             const form = document.getElementById('recuperarSenhaForm');
             const trigger = document.querySelector('[data-open-password]');
-            let scrollAnterior = '';
 
             trigger.addEventListener('click', () => {
                 if (modal.open) return;
@@ -292,6 +292,8 @@ async function enviarFormulario(form) {
                 trigger.focus({ preventScroll: true });
             });
 
+            // Integração: conectar este submit ao endpoint de recuperação.
+            // Nesta entrega visual, não faz POST na rota de login nem simula envio.
             form.addEventListener('submit', event => {
                 event.preventDefault();
                 enviarFormulario(form);
@@ -299,6 +301,7 @@ async function enviarFormulario(form) {
         })();
     </script>
 
+    <!-- AUTENTICAÇÃO (Preservada integralmente) -->
     <script>
       document
         .getElementById("loginForm")

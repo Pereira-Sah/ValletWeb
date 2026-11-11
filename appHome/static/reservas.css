@@ -28,7 +28,7 @@
 .reservas-container .filtros-box {
     padding: 16px;
     margin-bottom: 18px;
-    background: #fff;
+    background: #f4f6f4;
     border: 1px solid var(--reserva-claro);
     border-radius: 12px;
 }
@@ -115,9 +115,12 @@
 /* Lista */
 .reservas-container .reservas-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill,minmax(min(100%, 250px), 1fr));
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(min(100%, 310px), 1fr)
+    );
     align-items: stretch;
-    gap: 14px;
+    gap: 18px;
 }
 
 /* Card */
@@ -125,11 +128,12 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    padding: 14px;
+    padding: 20px;
     background: #fff;
     border: 1px solid var(--reserva-claro);
+    border-top: 4px solid var(--reserva-principal);
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(59, 80, 66, 0.04);
+    box-shadow: 0 4px 12px rgba(59, 80, 66, 0.08);
 }
 
 .reservas-container .reserva-top {
@@ -138,7 +142,9 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #edf1eb;
 }
 
 .reservas-container .info-basica {
@@ -146,14 +152,14 @@
     align-items: center;
     flex: 1 1 auto;
     min-width: 0;
-    gap: 8px;
+    gap: 10px;
 }
 
 .reservas-container .foto-motorista {
     display: block;
-    flex: 0 0 40px;
-    width: 40px;
-    height: 40px;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
     object-fit: cover;
     border-radius: 50%;
     border: 1px solid var(--reserva-claro);
@@ -175,38 +181,39 @@
     margin: 0;
     color: var(--reserva-principal);
     font-size: 1rem;
-    line-height: 1.4;
+    line-height: 1.3;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
 
 .reservas-container .info-basica .sub {
-    font-size: 0.85rem;
-    color: var(--reserva-secundaria);
+    font-size: 0.8rem;
+    color: #4A574D;
+    font-weight: 500;
     overflow-wrap: anywhere;
 }
 
 /* Status */
 .reservas-container .status {
     padding: 4px 8px;
-    border-radius: 7px;
-    font-size: 0.8rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: capitalize;
 }
 
 .reservas-container .status-ativa {
-    background: #CBD9C5;
-    color: #3B5042;
+    background: #b8ccbf;
+    color: #2d3d32;
 }
 
 .reservas-container .status-cancelada {
-    background: #f8d7da;
+    background: #f5c6cb;
     color: #721c24;
 }
 
 .reservas-container .status-concluida {
-    background: #edf1eb;
+    background: #e0e6dd;
     color: #3B5042;
 }
 
@@ -219,40 +226,32 @@
 .reservas-container .reserva-info {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 16px 12px;
+    margin-bottom: 16px;
 }
 
 .reservas-container .info-block {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
     min-width: 0;
-    gap: 7px;
-    padding: 0;
-}
-
-.reservas-container .info-block > div {
-    min-width: 0;
+    gap: 2px;
 }
 
 .reservas-container .info-block .label {
     display: block;
-    margin-bottom: 2px;
-    font-size: 0.8rem;
+    font-size: 0.7rem; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: var(--reserva-secundaria);
+    font-weight: 600;
 }
 
 .reservas-container .info-block strong {
-    color: #26332b;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    font-weight: 500;
+    color: var(--reserva-principal);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    font-weight: 700;
     overflow-wrap: anywhere;
-}
-
-.reservas-container .info-block i {
-    color: var(--reserva-secundaria);
-    font-size: 1rem;
-    margin-top: 3px;
 }
 
 /* Contato */
@@ -261,6 +260,7 @@
     justify-content: flex-end;
     margin-top: auto;
     padding-top: 12px;
+    border-top: 1px solid #edf1eb;
 }
 
 .reservas-container .btn-whats {
@@ -268,7 +268,7 @@
     justify-content: center;
     align-items: center;
     gap: 6px;
-    padding: 7px 10px;
+    padding: 8px 12px;
     background: var(--reserva-principal);
     color: #fff;
     border-radius: 8px;
@@ -277,8 +277,9 @@
     text-decoration: none;
     width: 100%;
     white-space: nowrap;
-    overflow: hidden; 
-    text-overflow: ellipsis; /* Se não couber, coloca "..." */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.2s;
 }
 
 .reservas-container .btn-whats:hover {
@@ -288,6 +289,9 @@
 .reservas-container .sem-whats {
     color: var(--reserva-secundaria);
     font-size: 0.85rem;
+    text-align: center;
+    width: 100%;
+    padding: 8px 0;
 }
 
 /* Estados */
