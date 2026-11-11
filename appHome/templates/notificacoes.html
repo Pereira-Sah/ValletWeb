@@ -4,203 +4,235 @@
 {% block tituloPagina %}Notificações{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'notificacoes.css' %}?v=filtros-reservas-1">
+<link rel="stylesheet" href="{% static 'notificacoes.css' %}?v=notificacoes-nova-ui-final">
 {% endblock %}
 
 {% block content %}
-
 <div class="notificacoes-container">
-    <div class="page-header">
-        <div>
-            <h1 class="page-title">Notificações</h1>
-        </div>
-        <form method="post" class="d-inline" id="marcar-todas-form"{% if not nao_lidas %} hidden{% endif %}>
+    <div class="page-header notificacoes-header">
+        <h1 class="page-title">Notificações</h1>
+
+        {% if total_notificacoes > 0 %}
+        <form method="post" class="acao-todas-form">
             {% csrf_token %}
-            <input type="hidden" name="acao" value="marcar_todas_como_lidas">
-            <button type="submit" class="btn-filtro">
-                <i class="bi bi-check-all"></i> Marcar Todas Lidas
+            <input type="hidden" name="acao" value="marcar_todas_lidas">
+            <button type="submit" class="btn btn-todas-lidas" {% if nao_lidas == 0 %}disabled{% endif %}>
+                <i class="bi bi-check2-all"></i>
+                Marcar Todas Lidas
             </button>
         </form>
+        {% endif %}
     </div>
 
-    <!-- Mensagens -->
-    {% if messages %}
-    <div class="mensagens-container">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            <i class="bi 
-                {% if message.tags == 'success' %}bi-check-circle-fill
-                {% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-circle-fill
-                {% else %}bi-info-circle-fill
-                {% endif %}">
-            </i>
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <form method="get" id="filtros-form" class="filtros-box">
+    <!-- Filtros -->
+    <form method="get" class="filtros-box" id="notificacoes-form">
         <div class="filtros-grid">
-            <div class="filtro-grupo">
-                <label class="filtro-label" for="tipo">Tipo</label>
-                <select name="tipo" id="tipo" class="filtro-select">
+            <div class="filtro-item">
+                <label for="filtro-tipo">Tipo</label>
+                <select id="filtro-tipo" name="tipo">
                     <option value="">Todos os tipos</option>
                     {% for tipo in tipos_notificacao %}
-                    <option value="{{ tipo.codigo }}"
-                        {% if filtro_tipo == tipo.codigo %}selected{% endif %}>
-                        {{ tipo.label }}
-                    </option>
+                        <option value="{{ tipo.codigo }}" {% if filtro_tipo == tipo.codigo %}selected{% endif %}>
+                            {{ tipo.label }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div class="filtro-grupo">
-                <label class="filtro-label" for="placa">Placa</label>
-                <input
-                    type="text"
-                    name="placa"
-                    id="placa"
-                    class="filtro-input"
-                    placeholder="ABC-1234"
-                    value="{{ filtro_placa }}">
+            <div class="filtro-item">
+                <label for="filtro-placa">Placa ou Motivo</label>
+                <input 
+                    type="text" 
+                    id="filtro-placa" 
+                    name="placa" 
+                    value="{{ filtro_placa }}" 
+                    placeholder="Digite para buscar...">
             </div>
 
-            <div class="filtro-grupo">
-                <label class="filtro-label" for="data_inicio">Data inicial</label>
-                <input
-                    type="date"
-                    name="data_inicio"
-                    id="data_inicio"
-                    class="filtro-input"
+            <div class="filtro-item">
+                <label for="filtro-inicio">Data Inicio</label>
+                <input 
+                    type="date" 
+                    id="filtro-inicio" 
+                    name="data_inicio" 
                     value="{{ filtro_data_inicio }}">
             </div>
 
-            <div class="filtro-grupo">
-                <label class="filtro-label" for="data_fim">Data final</label>
-                <input
-                    type="date"
-                    name="data_fim"
-                    id="data_fim"
-                    class="filtro-input"
+            <div class="filtro-item">
+                <label for="filtro-fim">Data Fim</label>
+                <input 
+                    type="date" 
+                    id="filtro-fim" 
+                    name="data_fim" 
                     value="{{ filtro_data_fim }}">
             </div>
 
-            <div class="filtros-botoes">
-                <button type="submit" class="btn-filtro btn-filtro-primary">
-                    <i class="bi bi-funnel" aria-hidden="true"></i>
-                    Aplicar
-                </button>
-                <a href="{% url 'notificacoes_admin' %}" class="btn-filtro btn-filtro-secondary">
-                    Limpar
-                </a>
+            <!-- Filtro Checkbox -->
+            <div class="filtro-checkbox-linha">
+                <label class="checkbox-container">
+                    <input type="checkbox" name="apenas_nao_lidas" {% if filtro_apenas_nao_lidas %}checked{% endif %} onchange="document.getElementById('notificacoes-form').submit();">
+                    <span class="checkmark"></span>
+                    Apenas não lidas
+                </label>
             </div>
 
-            <div class="filtro-check">
-                <input
-                    type="checkbox"
-                    name="apenas_nao_lidas"
-                    id="apenas_nao_lidas"
-                    {% if filtro_apenas_nao_lidas %}checked{% endif %}>
-                <label for="apenas_nao_lidas">Apenas não lidas</label>
+            <!-- Botões de Ação do Filtro -->
+            <div class="filtros-botoes botoes-alinhar-direita">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-filter"></i>
+                    Aplicar
+                </button>
+                <a href="/notificacoes/" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Limpar
+                </a>
             </div>
         </div>
     </form>
 
-    <div class="notificacoes-grid" id="container-notificacoes" aria-live="polite">
-        {% include 'partials/_notificacoes_list.html' %}
+    {% if erro_notificacoes %}
+    <div class="notificacoes-erro">
+        <i class="bi bi-exclamation-triangle"></i>
+        <p>{{ erro_notificacoes }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Grid de Notificações -->
+    <div class="notificacoes-grid">
+        {% if notificacoes %}
+            {% for n in notificacoes %}
+            <article class="notificacao-card {% if not n.lida %}nao-lida{% endif %}">
+                
+                <!-- LADO ESQUERDO: Miniatura com suporte a modal de zoom -->
+                <div class="notificacao-miniatura">
+                    {% if n.imagem %}
+                        <img src="{{ n.imagem }}" 
+                             alt="Placa {{ n.placa|default:'Capturada' }}" 
+                             class="foto-placa" 
+                             onclick="abrirModalImagem('{{ n.imagem }}')" 
+                             title="Clique para ampliar">
+                    {% elif n.tipo == 'obstrucao_camera' %}
+                        <div class="icone-fallback"><i class="bi bi-camera-video-off"></i></div>
+                    {% elif n.tipo == 'pagamento_nao_confirmado' %}
+                        <div class="icone-fallback"><i class="bi bi-currency-dollar"></i></div>
+                    {% elif n.tipo == 'alerta_seguranca' %}
+                        <div class="icone-fallback"><i class="bi bi-shield-exclamation"></i></div>
+                    {% elif n.tipo == 'sistema_erro' %}
+                        <div class="icone-fallback alerta"><i class="bi bi-exclamation-octagon"></i></div>
+                    {% elif n.tipo == 'sistema_alerta_estacionamento' %}
+                        <div class="icone-fallback"><i class="bi bi-info-circle"></i></div>
+                    {% elif n.tipo == 'estacionamento_reservado' or n.tipo == 'estacionamento_sem_reserva' %}
+                        <div class="icone-fallback"><i class="bi bi-car-front"></i></div>
+                    {% else %}
+                        <div class="icone-fallback"><i class="bi bi-bell"></i></div>
+                    {% endif %}
+                </div>
+
+                <!-- LADO DIREITO: Conteúdo -->
+                <div class="notificacao-conteudo">
+                    <header class="notificacao-topo">
+                        <span class="badge-tipo">
+                            {% if n.tipo_display %}{{ n.tipo_display }}{% else %}Notificação{% endif %}
+                        </span>
+                        <span class="notificacao-tempo">
+                            <i class="bi bi-clock"></i> 
+                            {% if n.data %}{{ n.data }}{% else %}Sem data{% endif %}
+                            {% if not n.lida %}<span class="tag-nao-lida">NÃO LIDA</span>{% endif %}
+                        </span>
+                    </header>
+
+                    <div class="notificacao-corpo">
+                        <p class="motivo-texto">
+                            {% if n.mensagem %}{{ n.mensagem }}{% elif n.titulo %}{{ n.titulo }}{% else %}Sem descrição.{% endif %}
+                        </p>
+                        
+                        <div class="dados-extras">
+                            {% if n.vaga_numero and n.vaga_numero != "-" %}
+                                <span class="dado-extra"><i class="bi bi-p-square"></i> <strong>Vaga:</strong> {{ n.vaga_numero }}</span>
+                            {% endif %}
+                            {% if n.placa and n.placa != "-" %}
+                                <span class="dado-extra">
+                                    <i class="bi bi-car-front"></i> <strong>Placa:</strong> 
+                                    <span class="badge-placa-destaque">{{ n.placa }}</span>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <footer class="notificacao-rodape">
+                        <form method="post" class="form-acao-linha">
+                            {% csrf_token %}
+                            <input type="hidden" name="notificacao_id" value="{{ n.id }}">
+                            
+                            {% if not n.lida %}
+                            <button type="submit" name="acao" value="marcar_lida" class="btn-acao btn-marcar" aria-label="Marcar como Lida">
+                                <i class="bi bi-check-circle"></i> Marcar Lida
+                            </button>
+                            {% endif %}
+                            
+                            <button type="submit" name="acao" value="excluir" class="btn-acao btn-excluir" aria-label="Excluir notificação">
+                                <i class="bi bi-trash"></i> Excluir
+                            </button>
+                        </form>
+                    </footer>
+                </div>
+            </article>
+            {% endfor %}
+        {% elif not erro_notificacoes %}
+            <div class="empty">
+                <i class="bi bi-inbox"></i>
+                <p>Nenhuma notificação encontrada no período.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
+
+<!-- Modal Lightbox para Inspeção da Placa -->
+<div id="imagem-modal" class="modal-imagem-overlay" onclick="fecharModalImagem()">
+    <span class="modal-imagem-fechar">&times;</span>
+    <img id="imagem-modal-src" class="modal-imagem-conteudo" alt="Placa ampliada">
+</div>
+
+<style>
+.modal-imagem-overlay {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    align-items: center;
+    justify-content: center;
+}
+.modal-imagem-conteudo {
+    max-width: 90%;
+    max-height: 85%;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.modal-imagem-fechar {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #fff;
+    font-size: 35px;
+    font-weight: bold;
+    cursor: pointer;
+}
+</style>
+
 <script>
-    const URL_RESUMO = "{% url 'notificacoes_resumo' %}";
-    const URL_NOTIFICACOES = "{% url 'notificacoes_admin' %}";
+function abrirModalImagem(src) {
+    const modal = document.getElementById('imagem-modal');
+    const img = document.getElementById('imagem-modal-src');
+    img.src = src;
+    modal.style.display = 'flex';
+}
 
-    let refreshTimer;
-    let activeRequest;
-    let ultimoNaoLidas = Number(
-        document.getElementById('notificacoes-estado')?.dataset.naoLidas || 0
-    );
-
-    function atualizarContadores() {
-        const estado = document.getElementById('notificacoes-estado');
-        if (!estado) return;
-        const naoLidas = Number(estado.dataset.naoLidas) || 0;
-        const marcarTodas = document.getElementById('marcar-todas-form');
-        if (marcarTodas) marcarTodas.hidden = naoLidas === 0;
-
-        const linkNotificacoes = document.querySelector(`.menu a[href^="${URL_NOTIFICACOES}"]`);
-        let contador = document.getElementById('navbar-notification-count');
-        if (!contador && linkNotificacoes) {
-            contador = document.createElement('span');
-            contador.id = 'navbar-notification-count';
-            contador.className = 'badge bg-danger ms-1';
-            linkNotificacoes.appendChild(contador);
-        }
-        if (contador) {
-            contador.textContent = naoLidas;
-            contador.hidden = naoLidas === 0;
-        }
-        document.title = naoLidas > 0 ? `Notificações (${naoLidas})` : 'Notificações';
-    }
-
-    async function atualizarNotificacoes() {
-        if (activeRequest) activeRequest.abort();
-        const controller = new AbortController();
-        activeRequest = controller;
-        try {
-            const response = await fetch(window.location.href, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                signal: controller.signal,
-                cache: 'no-store'
-            });
-            if (response.redirected) {
-                window.location.assign(response.url);
-                return;
-            }
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const html = await response.text();
-            if (controller.signal.aborted) return;
-            const fragment = new DOMParser().parseFromString(html, 'text/html');
-            const estado = fragment.getElementById('notificacoes-estado');
-            if (!estado) throw new Error('Resposta de notificações inválida');
-            document.getElementById('container-notificacoes').innerHTML = html;
-            ultimoNaoLidas = Number(estado.dataset.naoLidas) || 0;
-            atualizarContadores();
-        } catch (error) {
-            if (error.name !== 'AbortError') console.error('Erro ao atualizar notificações:', error);
-        } finally {
-            if (activeRequest === controller) activeRequest = null;
-        }
-    }
-
-    async function verificarResumo() {
-        try {
-            const response = await fetch(URL_RESUMO, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                cache: 'no-store'
-            });
-            if (response.redirected) {
-                window.location.assign(response.url);
-                return;
-            }
-            if (!response.ok) return;
-            const dados = await response.json();
-            const naoLidas = Number(dados.nao_lidas) || 0;
-            const estado = document.getElementById('notificacoes-estado');
-            if (!estado) return;
-            estado.dataset.naoLidas = naoLidas;
-            atualizarContadores();
-            if (naoLidas !== ultimoNaoLidas) {
-                ultimoNaoLidas = naoLidas;
-                clearTimeout(refreshTimer);
-                refreshTimer = setTimeout(atualizarNotificacoes, 250);
-            }
-        } catch (error) {
-            console.error('Erro ao verificar novas notificações:', error);
-        }
-    }
-
-    atualizarContadores();
-    setInterval(verificarResumo, 45000);
+function fecharModalImagem() {
+    document.getElementById('imagem-modal').style.display = 'none';
+}
 </script>
 {% endblock %}
