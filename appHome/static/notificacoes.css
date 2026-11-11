@@ -41,9 +41,7 @@ body.dark-mode {
     --borda-leve: #2a362e;
 }
 
-/* =========================================
-   ESTRUTURA GERAL E TIPOGRAFIA FORÇADA
-   ========================================= */
+/* ESTRUTURA GERAL E TIPOGRAFIA */
 .notificacoes-container {
     padding: 0;
     min-height: 100%;
@@ -51,7 +49,6 @@ body.dark-mode {
     color: var(--text-padrao);
 }
 
-/* Forçar Poppins e boa legibilidade em todos os botões e inputs */
 button, input, select, textarea {
     font-family: "Poppins", sans-serif;
 }
@@ -98,7 +95,7 @@ button, input, select, textarea {
     cursor: not-allowed;
 }
 
-/* Filtros */
+/* FILTROS */
 .filtros-box {
     padding: 16px;
     margin-bottom: 20px;
@@ -108,10 +105,15 @@ button, input, select, textarea {
 }
 
 .filtros-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
     gap: 12px;
+}
+
+.filtro-item {
+    flex: 1 1 180px;
+    min-width: 150px;
 }
 
 .filtro-item label {
@@ -132,6 +134,7 @@ button, input, select, textarea {
     background: var(--bg-card);
     color: var(--text-padrao);
     font-size: 0.9rem;
+    box-sizing: border-box;
 }
 
 .filtro-item input:focus,
@@ -144,6 +147,7 @@ button, input, select, textarea {
     display: flex;
     align-items: center;
     height: 40px;
+    padding: 0 4px;
 }
 
 .checkbox-container {
@@ -154,6 +158,7 @@ button, input, select, textarea {
     font-weight: 500;
     color: var(--noti-principal);
     cursor: pointer;
+    white-space: nowrap;
 }
 
 .checkbox-container input {
@@ -166,6 +171,8 @@ button, input, select, textarea {
 .filtros-botoes {
     display: flex;
     gap: 8px;
+    min-width: 200px;
+    margin-left: auto;
 }
 
 .filtros-botoes .btn {
@@ -180,6 +187,8 @@ button, input, select, textarea {
     font-weight: 500;
     cursor: pointer;
     font-family: "Poppins", sans-serif;
+    flex: 1;
+    white-space: nowrap;
 }
 
 .btn-primary {
@@ -222,15 +231,14 @@ button, input, select, textarea {
     text-align: center;
     color: var(--text-mutado);
 }
+
 .empty i {
     font-size: 2.5rem;
     margin-bottom: 10px;
     display: block;
 }
 
-/* =========================================
-   GRID E CARDS DE NOTIFICAÇÃO (Ajustados)
-   ========================================= */
+/* GRID E CARDS DE NOTIFICAÇÃO */
 .notificacoes-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
@@ -257,21 +265,21 @@ button, input, select, textarea {
     border-left: 4px solid var(--noti-principal);
 }
 
+/* Miniatura Esquerda */
 .notificacao-miniatura {
-    flex: 0 0 115px;
-    background: #171c19;
+    flex: 0 0 110px;
+    background: var(--bg-miniatura);
     display: flex;
     align-items: center;
     justify-content: center;
     border-right: 1px solid var(--borda-leve);
-    position: relative;
+    overflow: hidden;
 }
 
 .foto-placa {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    padding: 4px;
+    object-fit: cover;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
@@ -287,27 +295,6 @@ button, input, select, textarea {
 
 .icone-fallback.alerta {
     color: #dc3545; 
-}
-
-.badge-placa-destaque {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: #eef2ef;
-    border: 1px solid var(--noti-apoio);
-    color: #1b2e21;
-    font-family: 'Courier New', Courier, monospace;
-    font-weight: 700;
-    font-size: 0.85rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    letter-spacing: 1px;
-}
-
-body.dark-mode .badge-placa-destaque {
-    background: #253329;
-    color: #a8d5b5;
-    border-color: #3b5042;
 }
 
 /* Conteúdo Direito */
@@ -390,7 +377,7 @@ body.dark-mode .badge-placa-destaque {
     color: var(--noti-principal);
 }
 
-/* Rodapé dos botões travados embaixo */
+/* Rodapé dos botões */
 .notificacao-rodape {
     border-top: 1px solid var(--borda-leve);
     padding-top: 8px;
@@ -438,6 +425,49 @@ body.dark-mode .badge-placa-destaque {
 }
 
 /* =========================================
+   MODAL LIGHTBOX (ZOOM EXPANDIDO DA PLACA)
+   ========================================= */
+.modal-imagem-overlay {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.88);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.modal-imagem-conteudo {
+    width: 85vw;
+    max-width: 1200px;
+    max-height: 88vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-imagem-fechar {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-imagem-fechar:hover {
+    color: #dc3545;
+}
+
+/* =========================================
    BOTÃO DO MODO ESCURO
    ========================================= */
 .btn-theme-toggle {
@@ -466,7 +496,14 @@ body.dark-mode .btn-theme-toggle:hover {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Responsividade */
+/* Responsividade Geral */
+@media (max-width: 768px) {
+    .filtros-botoes {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
 @media (max-width: 600px) {
     .notificacoes-header {
         flex-direction: column;
@@ -478,7 +515,7 @@ body.dark-mode .btn-theme-toggle:hover {
     }
     
     .notificacao-miniatura {
-        flex: 0 0 80px; 
+        flex: 0 0 100px; 
         border-right: none;
         border-bottom: 1px solid var(--borda-leve);
     }
