@@ -1,67 +1,74 @@
 <span id="notificacoes-estado" hidden data-nao-lidas="{{ nao_lidas|default:0 }}"></span>
 
-{% if notificacoes %}
-    {% for item in notificacoes %}
-    <div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %}" id="notif-{{ item.id }}">
+{% if erro_notificacoes %}
+<div class="alert alert-danger" role="alert">{{ erro_notificacoes }}</div>
+{% elif notificacoes %} {% for item in notificacoes %}
+<div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %} caixa-cantoneira"
+    id="notif-{{ item.id }}">
+    <div>
+        {% if item.imagem %}
+        <img src="{{ item.imagem }}" alt="{{item.placa}}" style="height: 100px;width: 150px;" />
+        {% endif %}
+    </div>
+    <div>
         <div class="notificacao-header">
             <span class="notificacao-tipo tipo-{{ item.tipo }}">
-                {{ item.tipo|upper }}
+                {{ item.tipo_display|upper }}
             </span>
+        </div>
 
-            <div class="notificacao-acoes">
-                {% if not item.lida %}
-                <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="notificacao_id" value="{{ item.id }}">
-                    <input type="hidden" name="acao" value="marcar_lida">
-
-                    <button type="submit" class="btn-acao btn-success" title="Marcar como lida">
-                        <i class="bi bi-check"></i>
-                    </button>
-                </form>
+        <div>
+            <div class="notificacao-conteudo">
+                {% if item.titulo and item.titulo != "Alerta do Sistema" %}
+                <h4 class="notificacao-titulo">{{ item.titulo }}</h4>
                 {% endif %}
 
-                <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="notificacao_id" value="{{ item.id }}">
-                    <input type="hidden" name="acao" value="excluir">
-
-                    <button type="submit"
-                            class="btn-acao btn-danger"
-                            onclick="return confirm('Excluir esta notificação?')"
-                            title="Excluir">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <div class="notificacao-conteudo">
-            {% if item.titulo and item.titulo != "Alerta do Sistema" %}
-            <h4 class="notificacao-titulo">{{ item.titulo }}</h4>
-            {% endif %}
-
-            <p>{{ item.mensagem }}</p>
-        </div>
-
-        <div class="notificacao-footer">
-            <div class="notificacao-data">
-                <i class="bi bi-clock"></i>
-                <span>{{ item.data }}</span>
+                <p>{{ item.mensagem }}</p>
             </div>
 
+            <div class="notificacao-footer">
+                <div class="notificacao-data">
+                    <i class="bi bi-clock"></i>
+                    <span>{{ item.data }}</span>
+                </div>
+
+                {% if not item.lida %}
+                <span class="badge bg-warning">NÃO LIDA</span>
+                {% else %}
+                <span class="badge bg-success">LIDA</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="notificacao-acoes">
             {% if not item.lida %}
-            <span class="badge bg-warning">NÃO LIDA</span>
-            {% else %}
-            <span class="badge bg-success">LIDA</span>
+            <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
+                {% csrf_token %}
+                <input type="hidden" name="notificacao_id" value="{{ item.id }}" />
+                <input type="hidden" name="acao" value="marcar_lida" />
+
+                <button type="submit" class="btn-acao marcar-lida" title="Marcar como lida">
+                    <i class="bi bi-check"></i>
+                </button>
+            </form>
             {% endif %}
+
+            <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
+                {% csrf_token %}
+                <input type="hidden" name="notificacao_id" value="{{ item.id }}" />
+                <input type="hidden" name="acao" value="excluir" />
+
+                <button type="submit" class="btn-acao btn-danger" onclick="return confirm('Excluir esta notificação?');"
+                    title="Excluir">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
         </div>
     </div>
-    {% endfor %}
-{% else %}
-    <div class="empty-state">
-        <i class="bi bi-bell-slash"></i>
-        <h4>Nenhuma notificação encontrada</h4>
-        <p>Não há notificações que correspondam aos filtros aplicados.</p>
-    </div>
+</div>
+{% endfor %} {% else %}
+<div class="empty-state">
+    <i class="bi bi-bell-slash"></i>
+    <h4>Nenhuma notificação encontrada</h4>
+    <p>Não há notificações que correspondam aos filtros aplicados.</p>
+</div>
 {% endif %}

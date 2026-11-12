@@ -39,7 +39,7 @@
             </div>
 
             <div class="filtro-item">
-                <label for="filtro-inicio">Data início</label>
+                <label for="filtro-inicio">Início da reserva</label>
                 <input
                     id="filtro-inicio"
                     type="date"
@@ -48,7 +48,7 @@
             </div>
 
             <div class="filtro-item">
-                <label for="filtro-fim">Data fim</label>
+                <label for="filtro-fim">Fim da reserva</label>
                 <input
                     id="filtro-fim"
                     type="date"
@@ -134,35 +134,23 @@
 
                 <section class="reserva-info">
                     <div class="info-block">
-                        <i class="bi bi-p-square"></i>
-                        <div>
-                            <span class="label">Vaga</span>
-                            <strong>{{ r.numero_vaga|default:"—" }}</strong>
-                        </div>
+                        <span class="label">Vaga</span>
+                        <strong>{{ r.numero_vaga|default:"—" }}</strong>
                     </div>
 
                     <div class="info-block">
-                        <i class="bi bi-car-front"></i>
-                        <div>
-                            <span class="label">Placa</span>
-                            <strong>{{ r.placa|default:"Não informada" }}</strong>
-                        </div>
+                        <span class="label">Placa</span>
+                        <strong>{{ r.placa|default:"Não informada" }}</strong>
                     </div>
 
                     <div class="info-block">
-                        <i class="bi bi-calendar-event"></i>
-                        <div>
-                            <span class="label">Início</span>
-                            <strong>{{ r.inicio|default:"—" }}</strong>
-                        </div>
+                        <span class="label">Início</span>
+                        <strong>{{ r.inicio|default:"—" }}</strong>
                     </div>
 
                     <div class="info-block">
-                        <i class="bi bi-calendar2-event"></i>
-                        <div>
-                            <span class="label">Fim</span>
-                            <strong>{{ r.fim|default:"—" }}</strong>
-                        </div>
+                        <span class="label">Fim</span>
+                        <strong>{{ r.fim|default:"—" }}</strong>
                     </div>
                 </section>
 

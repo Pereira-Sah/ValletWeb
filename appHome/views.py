@@ -1,8 +1,10 @@
 import json
 import requests
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from django.contrib.auth.decorators import login_required
-
+from .models import NotificacaoAdmin
+from django.urls import reverse
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponseRedirect
 from django.conf import settings
@@ -14,13 +16,37 @@ from django.contrib import messages
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
+from django.core.exceptions import PermissionDenied
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.mail import EmailMessage
+from django.core.validators import validate_email
+from django.views.decorators.http import require_POST
+
+from appHome.context_processors import (
+    definir_nome_estacionamento,
+    invalidar_cache_notificacoes,
+    obter_resumo_notificacoes,
+)
 
 User = get_user_model()
 
+<<<<<<< HEAD
 API_BASE_URL = getattr(settings, "API_BASE_URL", "https://valletapi.onrender.com/")
+=======
+API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
+API_TIMEOUT = float(getattr(settings, "API_TIMEOUT", 6))
+>>>>>>> origin
 
-
-def api_request(method: str, endpoint: str, request_obj, data=None, params=None):
+def api_request(
+    method: str,
+    endpoint: str,
+    request_obj,
+    data=None,
+    params=None,
+    timeout=None,
+):
     url = f"{API_BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
     headers = {
         "X-Estacionamento-ID": get_clean_id_estacionamento(request_obj),
@@ -42,6 +68,7 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
                 filtered_params[k] = v
         if not filtered_params:
             filtered_params = None
+
     try:
         response = requests.request(
             method=method.upper(),
@@ -49,13 +76,15 @@ def api_request(method: str, endpoint: str, request_obj, data=None, params=None)
             json=data if data else None,
             params=filtered_params,
             headers=headers,
-            timeout=10.0,
+            timeout=API_TIMEOUT if timeout is None else timeout,
         )
+        if response.status_code == 401:
+            request_obj.session.flush()
+            raise PermissionDenied("Sessão expirada. Faça login novamente.")
         return response
     except requests.RequestException as e:
         print(f"[API ERROR] Erro na requisição para {url}: {e}")
         return None
-
 
 @csrf_exempt
 def firebase_login(request):
@@ -108,15 +137,26 @@ def firebase_login(request):
             )
             
             id_estac = None
+            nome_estac = ""
+
             if estac_res and estac_res.status_code == 200:
                 estacionamentos = estac_res.json()
                 if isinstance(estacionamentos, list) and len(estacionamentos) > 0:
-                    id_estac = estacionamentos[0].get("id")
+                    primeiro = estacionamentos[0]
+                    if isinstance(primeiro, dict):
+                        id_estac = primeiro.get("id")
+                        nome_estac = primeiro.get("nome") or ""
 
             if id_estac:
                 request.session["id_estacionamento"] = str(id_estac).strip()
+                definir_nome_estacionamento(
+                    str(id_estac).strip(),
+                    nome_estac,
+                )
             else:
                 request.session["id_estacionamento"] = ""
+
+            invalidar_cache_notificacoes(request)
 
         redirect_url = "/gestor/" if is_gestor else "/login/"
 
@@ -137,12 +177,25 @@ def get_clean_id_estacionamento(request) -> str:
 
 @login_required(login_url="/login/")
 def reservas(request):
+    # Pega a data de hoje formatada no fuso horário correto (igual às notificações)
+    hoje_obj = timezone.localdate(timezone=ZoneInfo("America/Sao_Paulo"))
+    hoje_str = hoje_obj.isoformat()
+
+    # Verifica se é a primeira abertura (se nenhum filtro de data foi enviado na URL)
+    primeira_abertura = not any(
+        campo in request.GET for campo in ("data_inicio", "data_fim")
+    )
+
+    # Se for a primeira abertura, define data_inicio e data_fim para o dia de hoje
+    data_inicio_padrao = hoje_str if primeira_abertura else ""
+    data_fim_padrao = hoje_str if primeira_abertura else ""
+
     params = {
         "id_estacionamento": get_clean_id_estacionamento(request),
         "placa": request.GET.get("placa", "").strip(),
         "usuario": request.GET.get("usuario", "").strip(),
-        "data_inicio": request.GET.get("data_inicio", "").strip(),
-        "data_fim": request.GET.get("data_fim", "").strip(),
+        "data_inicio": request.GET.get("data_inicio", data_inicio_padrao).strip(),
+        "data_fim": request.GET.get("data_fim", data_fim_padrao).strip(),
         "status": request.GET.get("status", "").strip().lower(),
         "limite": 24,
         "cursor": request.GET.get("cursor", "").strip(),
@@ -242,80 +295,161 @@ def reservas(request):
 @never_cache
 @login_required(login_url="/login/")
 def gestor(request):
-    id_estacionamento = get_clean_id_estacionamento(request)
-    if id_estacionamento:
-        endpoint = f"/admin/{id_estacionamento}/dashboard"
-    else:
-        endpoint = "/admin/dashboard"
-
-    # Esta era a integração original da dashboard e volta a ser a fonte única
-    # das métricas reais do estacionamento.
-    dashboard_response = api_request("GET", endpoint, request)
-    if id_estacionamento and (not dashboard_response or dashboard_response.status_code != 200):
-        # Se a sessão tiver um ID antigo, deixa a API localizar o estacionamento
-        # pelo usuário autenticado, como fazia a versão original sem ID.
-        dashboard_response = api_request("GET", "/admin/dashboard", request)
-    dash_data = {}
-    dashboard_api_ok = False
-    dashboard_api_status = None
-
-    if dashboard_response is not None:
-        dashboard_api_status = dashboard_response.status_code
-    if dashboard_response and dashboard_response.status_code == 200:
-        resposta_dashboard = dashboard_response.json()
-        if isinstance(resposta_dashboard, dict):
-            dash_data = resposta_dashboard
-            dashboard_api_ok = True
-
-    vagas_total = max(0, int(dash_data.get("vagas_total") or 0))
-    vagas_ocupadas = max(0, min(int(dash_data.get("vagas_ocupadas") or 0), vagas_total))
-    vagas_livres = max(0, vagas_total - vagas_ocupadas)
-    vagas_percentual = round((vagas_ocupadas / vagas_total) * 100) if vagas_total else 0
-
-    faturamento_7_dias = dash_data.get("faturamento_7_dias") or []
-    faturamento_7_dias_total = sum(float(item.get("valor") or 0) for item in faturamento_7_dias if isinstance(item, dict))
-
-    # Mantém compatibilidade com a resposta original da API.
-    # A API antiga não devolve "status_reservas"; ela devolve estas métricas separadas.
-    status_labels = ["Hoje", "Ativas e pendentes", "Canceladas"]
-    status_values = [
-        int(dash_data.get("reservas_hoje") or 0),
-        int(dash_data.get("reservas_pendentes") or 0),
-        int(dash_data.get("reservas_canceladas") or 0),
-    ]
-    status_colors = ["#00A676", "#046C4E", "#D32F2F"]
-    status_data = {
-        "geral": {
-            "labels": status_labels,
-            "values": status_values,
-            "colors": status_colors,
-        }
-    }
-
-    context = {
+    return render(request, "dashboard.html", {
         "user_name": request.session.get("user_name", "Visitante"),
         "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
         "fotoPerfil": request.session.get("fotoPerfil", ""),
-        "id_estacionamento_usado": id_estacionamento,
-        "vagas_total": vagas_total,
-        "vagas_ocupadas": vagas_ocupadas,
-        "vagas_livres": vagas_livres,
-        "vagas_percentual": vagas_percentual,
-        "vagas_api_ok": dashboard_api_ok,
-        "vagas_api_status": dashboard_api_status,
-        "dashboard_api_ok": dashboard_api_ok,
-        "dashboard_api_status": dashboard_api_status,
-        "faturamento_7_dias": faturamento_7_dias,
-        "faturamento_7_dias_total": f"{faturamento_7_dias_total:,.2f}".replace(".", ","),
-        "reservas_hoje": dash_data.get("reservas_hoje", 0),
-        "reservas_pendentes": dash_data.get("reservas_pendentes", 0),
-        "tempo_medio_permanencia": dash_data.get("tempo_medio_permanencia", "—"),
-        "ultimas_reservas": dash_data.get("ultimas_reservas", []),
-        "status_reservas_json": status_data,
-        "status_api_ok": dashboard_api_ok,
-    }
+    })
 
-    return render(request, "admin.html", context)
+
+@never_cache
+@login_required(login_url="/login/")
+def chat(request):
+    return render(request, "chat.html", {
+        "user_name": request.session.get("user_name", "Visitante"),
+        "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
+        "fotoPerfil": request.session.get("fotoPerfil", ""),
+        "id_estacionamento": get_clean_id_estacionamento(request),
+    })
+
+
+@never_cache
+@require_GET
+@login_required(login_url="/login/")
+def chat_token(request):
+    """Entrega ao navegador um token de curta duração para o Firestore."""
+    if not request.session.get("id_token"):
+        return JsonResponse(
+            {"detail": "Sua sessão expirou. Faça login novamente.",
+             "login_url": reverse("login")},
+            status=401,
+        )
+
+    try:
+        resposta = api_request("POST", "chat/token", request, timeout=15)
+    except PermissionDenied:
+        return JsonResponse(
+            {"detail": "Sua sessão expirou. Faça login novamente.",
+             "login_url": reverse("login")},
+            status=401,
+        )
+
+    if resposta is None:
+        return JsonResponse(
+            {"detail": "Não foi possível conectar à API do chat."},
+            status=503,
+        )
+
+    try:
+        dados = resposta.json()
+    except ValueError:
+        return JsonResponse(
+            {"detail": "A API retornou uma resposta inválida para o chat."},
+            status=502,
+        )
+
+    if resposta.status_code != 200:
+        detalhe = dados.get("detail") if isinstance(dados, dict) else None
+        if not isinstance(detalhe, str) or not detalhe:
+            detalhe = "Não foi possível iniciar o chat."
+        status_code = resposta.status_code if resposta.status_code in (
+            400, 401, 403, 404, 422, 503
+        ) else 502
+        return JsonResponse({"detail": detalhe}, status=status_code)
+
+    if not isinstance(dados, dict) or not dados.get("token"):
+        return JsonResponse(
+            {"detail": "A API não retornou um token de chat válido."},
+            status=502,
+        )
+
+    return JsonResponse(dados)
+
+
+@never_cache
+@require_GET
+def gestor_dashboard_dados(request):
+    """Proxy autenticado: o token Firebase nunca é enviado ao JavaScript."""
+    if not request.user.is_authenticated or not request.session.get("id_token"):
+        return JsonResponse({
+            "detail": "Sua sessão expirou. Faça login novamente.",
+            "login_url": reverse("login"),
+        }, status=401)
+
+    secao = request.GET.get("secao", "reservas")
+    if secao not in ("reservas", "ocupacao"):
+        return JsonResponse({"detail": "Seção inválida."}, status=400)
+
+    params = {}
+    if secao == "reservas":
+        periodo = request.GET.get("periodo", "mes_atual")
+        if periodo not in ("ultimos_7_dias", "mes_atual", "mes"):
+            return JsonResponse({"detail": "Período inválido."}, status=422)
+        params["periodo"] = periodo
+        ano, mes = request.GET.get("ano"), request.GET.get("mes")
+        if periodo == "mes":
+            try:
+                ano, mes = int(ano), int(mes)
+            except (ValueError, TypeError):
+                return JsonResponse({"detail": "Informe ano e mês válidos."}, status=422)
+            if not 1900 <= ano <= 9998 or not 1 <= mes <= 12:
+                return JsonResponse({"detail": "Ano ou mês fora do intervalo."}, status=422)
+            params.update({"ano": ano, "mes": mes})
+        elif ano is not None or mes is not None:
+            return JsonResponse({"detail": "Ano e mês só podem ser usados em Escolher mês."}, status=422)
+
+    id_estacionamento = get_clean_id_estacionamento(request)
+    endpoint = (
+        f"/admin/{id_estacionamento}/dashboard/{secao}"
+        if id_estacionamento else f"/admin/dashboard/{secao}"
+    )
+    try:
+        resposta = api_request(
+            "GET", endpoint, request, params=params,
+            timeout=float(getattr(settings, "API_DASHBOARD_TIMEOUT", 35)),
+        )
+        # Somente um ID removido/desatualizado permite redescobrir o estacionamento.
+        # Não mascara falhas de acesso, índices, rede ou parâmetros com outra consulta.
+        if id_estacionamento and resposta is not None and resposta.status_code == 404:
+            resposta = api_request(
+                "GET", f"/admin/dashboard/{secao}", request, params=params,
+                timeout=float(getattr(settings, "API_DASHBOARD_TIMEOUT", 35)),
+            )
+    except PermissionDenied:
+        return JsonResponse({
+            "detail": "Sua sessão expirou. Faça login novamente.",
+            "login_url": reverse("login"),
+        }, status=401)
+
+    if resposta is None:
+        return JsonResponse({
+            "detail": "Não foi possível conectar à API. Tente mudar o período novamente.",
+        }, status=503)
+
+    try:
+        dados = resposta.json()
+    except ValueError:
+        return JsonResponse({"detail": "A API retornou uma resposta inválida."}, status=502)
+
+    if resposta.status_code != 200:
+        detalhe = dados.get("detail") if isinstance(dados, dict) else None
+        if not isinstance(detalhe, str):
+            detalhe = "Não foi possível carregar os dados do dashboard."
+        # Uma rota nova ausente deve orientar a instalar a API da etapa 2.
+        if resposta.status_code == 404 and detalhe == "Not Found":
+            detalhe = "Atualize a API com os arquivos da etapa 2 e reinicie o serviço."
+        codigo = resposta.status_code if resposta.status_code in (401, 403, 404, 422, 503) else 502
+        return JsonResponse({"detail": detalhe}, status=codigo)
+
+    if not isinstance(dados, dict) or not dados.get("id_estacionamento"):
+        return JsonResponse({"detail": "Dados do dashboard inválidos."}, status=502)
+    if secao == "reservas" and not all(isinstance(dados.get(k), dict) for k in ("resumo", "graficos", "periodo")):
+        return JsonResponse({"detail": "Dados das reservas inválidos."}, status=502)
+    if secao == "ocupacao" and not all(isinstance(dados.get(k), int) for k in ("vagas_total", "vagas_ocupadas", "vagas_disponiveis")):
+        return JsonResponse({"detail": "Dados de ocupação inválidos."}, status=502)
+
+    request.session["id_estacionamento"] = str(dados["id_estacionamento"])
+    return JsonResponse(dados)
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -335,6 +469,7 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
         response = api_request("POST", "notificacoes/acao/", request, data=payload)
 
         if response and response.status_code == 200:
+            invalidar_cache_notificacoes(request)
             messages.success(request, "Ação executada com sucesso!")
         else:
             messages.error(request, "Erro ao processar ação na API centralizada.")
@@ -352,43 +487,67 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
 
         id_estacionamento = get_clean_id_estacionamento(self.request)
 
+        hoje_obj = timezone.localdate(timezone=ZoneInfo("America/Sao_Paulo"))
+        hoje_str = hoje_obj.isoformat()
+        
+        primeira_abertura = not any(
+            campo in self.request.GET for campo in ("data_inicio", "data_fim")
+        )
+        
+        data_inicio_padrao = hoje_str if primeira_abertura else ""
+        data_fim_padrao = hoje_str if primeira_abertura else ""
+
         params = {
             "tipo": self.request.GET.get("tipo", "").strip(),
             "placa": self.request.GET.get("placa", "").strip(),
-            "data_inicio": self.request.GET.get("data_inicio", "").strip(),
-            "data_fim": self.request.GET.get("data_fim", "").strip(),
+            "data_inicio": self.request.GET.get("data_inicio", data_inicio_padrao).strip(),
+            "data_fim": self.request.GET.get("data_fim", data_fim_padrao).strip(),
             "apenas_nao_lidas": "true" if apenas_nao_lidas_bool else None,
         }
 
         response = api_request("GET", "notificacoes/", self.request, params=params)
 
+        erro_notificacoes = ""
         if response is None:
             print("[NOTIFICAÇÕES] Não foi possível conectar à API.")
+            erro_notificacoes = "Não foi possível conectar à API de notificações. Tente novamente em instantes."
             api_data = {}
+            notificacoes = []
         elif response.status_code != 200:
-            print(
-                f"[NOTIFICAÇÕES] A API respondeu com HTTP "
-                f"{response.status_code}."
-            )
+            print(f"[NOTIFICAÇÕES] A API respondeu com HTTP {response.status_code}.")
+            erro_notificacoes = f"Não foi possível carregar as notificações (HTTP {response.status_code}). Confira o terminal da API."
             api_data = {}
+            notificacoes = []
         else:
             api_data = response.json()
-            print(
-                "[NOTIFICAÇÕES]",
-                f"Estacionamento da sessão: {id_estacionamento}",
-                f"Estacionamento da API: {api_data.get('id_estacionamento')}",
-                f"Quantidade retornada: {len(api_data.get('notificacoes', []))}",
-            )
-            
+            TIPOS_MAP = dict(NotificacaoAdmin.TIPOS_NOTIFICACAO)
+            TIPOS_MAP["reserva_iniciada"] = "Reserva iniciada"
+            notificacoes_api = api_data.get("notificacoes", [])
+            notificacoes = []
+            for n in notificacoes_api:
+                n = dict(n)
+                n["tipo_display"] = TIPOS_MAP.get(n.get("tipo"), n.get("tipo"))
+                notificacoes.append(n)
+            tipos_api = api_data.get("tipos_notificacao", [])
+            if not tipos_api:
+                tipos_api = list(TIPOS_MAP.keys())
+
+            tipos_formatados = []
+            for tipo_codigo in tipos_api:
+                tipos_formatados.append({
+                    "codigo": tipo_codigo,
+                    "label": TIPOS_MAP.get(tipo_codigo, tipo_codigo.replace("_", " ").capitalize())
+                })
         return {
             "user_name": self.request.session.get("user_name", "Visitante"),
             "user_cargo": self.request.session.get("user_cargo", "Cargo Desconhecido"),
             "fotoPerfil": self.request.session.get("fotoPerfil", ""),
             "id_estacionamento": id_estacionamento,
-            "notificacoes": api_data.get("notificacoes", []),
+            "notificacoes": notificacoes,
+            "erro_notificacoes": erro_notificacoes,
             "nao_lidas": api_data.get("nao_lidas", 0),
             "total_notificacoes": api_data.get("total", 0),
-            "tipos_notificacao": api_data.get("tipos_notificacao", []),
+            "tipos_notificacao": tipos_formatados,
             "filtro_tipo": params["tipo"],
             "filtro_placa": params["placa"],
             "filtro_data_inicio": params["data_inicio"],
@@ -396,14 +555,11 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
             "filtro_apenas_nao_lidas": apenas_nao_lidas_bool,
         }
 
-
 def appHome(request):
     return render(request, 'home.html')
 
-
 def login_view(request):
     return render(request, 'login.html')
-
 
 def logout_view(request):
     try:
@@ -411,6 +567,14 @@ def logout_view(request):
     except Exception:
         pass
     return HttpResponseRedirect('/login/')
+
+
+@method_decorator(never_cache, name="dispatch")
+class NotificacoesResumoView(LoginRequiredMixin, View):
+    """Entrega apenas o total e as não lidas, usando cache curto."""
+
+    def get(self, request):
+        return JsonResponse(obter_resumo_notificacoes(request))
 
 
 class NotificacoesAPIView(LoginRequiredMixin, View):
@@ -436,6 +600,8 @@ class NotificacoesAPIView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body) if request.body else {}
             res = api_request("POST", "notificacoes/api/", request, data=data)
+            if res and res.status_code == 200:
+                invalidar_cache_notificacoes(request)
             if res:
                 return JsonResponse(res.json(), status=res.status_code)
             return JsonResponse({'success': False, 'error': 'Erro de comunicação com a API Backend'}, status=502)
@@ -443,3 +609,98 @@ class NotificacoesAPIView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': 'Payload JSON inválido'}, status=400)
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def _excedeu_limite(request, nome, maximo, janela_s):
+    """Limite simples por IP, para o formulário não virar canal de spam."""
+    chave = f"rl:{nome}:{request.META.get('REMOTE_ADDR', '')}"
+    cache.add(chave, 0, janela_s)
+    try:
+        return cache.incr(chave) > maximo
+    except ValueError:
+        cache.set(chave, 1, janela_s)
+        return False
+
+
+@require_POST
+def recuperar_senha(request):
+    email = request.POST.get("email", "").strip().lower()
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({"ok": False, "detail": "Informe um e-mail válido."}, status=400)
+
+    if _excedeu_limite(request, "recuperar", 5, 600):
+        return JsonResponse({"ok": False, "detail": "Muitas tentativas. Aguarde alguns minutos."}, status=429)
+
+    resp = api_request("POST", "auth/recuperar_senha", request, data={"email": email})
+
+    if resp is None or resp.status_code >= 500 or resp.status_code in (400, 403):
+        return JsonResponse(
+            {"ok": False, "detail": "Não foi possível enviar o link agora. Tente novamente em instantes."},
+            status=503,
+        )
+
+    return JsonResponse({
+        "ok": True,
+        "detail": "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.",
+    })
+
+
+ASSUNTOS_CONTATO = {
+    "acesso": "Solicitar acesso",
+    "suporte": "Problema para entrar",
+    "outro": "Outro assunto",
+}
+
+
+@require_POST
+def contato(request):
+    resposta_ok = JsonResponse({"ok": True, "detail": "Mensagem enviada! Responderemos pelo e-mail informado."})
+
+    if request.POST.get("website"):
+        return resposta_ok
+
+    nome = " ".join(request.POST.get("nome", "").split())[:100]
+    email = request.POST.get("email", "").strip()[:254]
+    estacionamento = " ".join(request.POST.get("estacionamento", "").split())[:150]
+    assunto = request.POST.get("assunto", "")
+    mensagem = request.POST.get("mensagem", "").strip()[:3000]
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({"ok": False, "detail": "Informe um e-mail válido."}, status=400)
+    if not nome or not mensagem or assunto not in ASSUNTOS_CONTATO:
+        return JsonResponse({"ok": False, "detail": "Preencha nome, assunto e mensagem."}, status=400)
+
+    if _excedeu_limite(request, "contato", 3, 600):
+        return JsonResponse({"ok": False, "detail": "Muitas mensagens. Aguarde alguns minutos."}, status=429)
+
+    corpo = (
+        f"Assunto: {ASSUNTOS_CONTATO[assunto]}\n"
+        f"Nome: {nome}\n"
+        f"E-mail: {email}\n"
+        f"Estacionamento: {estacionamento or '(não informado)'}\n\n"
+        f"{mensagem}"
+    )
+    try:
+        enviados = EmailMessage(
+            subject=f"[Vallet] {ASSUNTOS_CONTATO[assunto]} - {nome}",
+            body=corpo,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[settings.CONTATO_DESTINO],
+            reply_to=[email],
+        ).send()
+        if not enviados:
+            raise RuntimeError(
+                "Nenhum e-mail enviado: verifique EMAIL_HOST_USER, "
+                "EMAIL_HOST_PASSWORD e CONTATO_DESTINO."
+            )
+        print(f"[CONTATO] Mensagem enviada de {email} ({nome}) sobre '{assunto}'")
+    except Exception as e:
+        print(f"[CONTATO] Falha ao enviar e-mail: {e}")
+        return JsonResponse(
+            {"ok": False, "detail": "Não foi possível enviar agora. Tente novamente em instantes."},
+            status=503,
+        )
+    return resposta_ok

@@ -10,8 +10,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% block extra_head %}
     {% endblock %}
-    <link rel="stylesheet" href="{% static 'admin.css' %}">
-    <link rel="icon" type="image/png" href="{% static 'assets/VALLET (2).png' %}">
+    <link rel="stylesheet" href="{% static 'admin.css' %}?v=gestor-ajustes-1">
+    <link rel="icon" type="image/png" href="{% static 'assets/vallet_icon.png' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <title>
@@ -27,12 +27,12 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="avatar">
-                    {% if fotoPerfil %}
-                        <img src="{{ fotoPerfil }}"
+                    {% if foto_estacionamento %}
+                        <img src="{{ foto_estacionamento }}"
                             class="profile-pic"
                             alt="Foto do estacionamento">
                     {% else %}
-                        <i class="bi bi-person-circle"></i>
+                        <i class="bi bi-building"></i>
                     {% endif %}
                 </div>
 
@@ -67,6 +67,16 @@
                     <span>Reservas</span>
                 </a>
 
+                <a href="{% url 'chat' %}"
+                id="navbar-chat-link"
+                {% if request.resolver_match.url_name == 'chat' %}
+                aria-current="page"
+                {% endif %}>
+                    <i class="bi bi-chat-dots-fill"></i>
+                    <span>Chat</span>
+                    <span class="badge" id="navbar-chat-count" hidden>0</span>
+                </a>
+
                 <a href="{% url 'notificacoes_admin' %}?apenas_nao_lidas=on"
                 {% if request.resolver_match.url_name == 'notificacoes_admin' %}
                 aria-current="page"
@@ -96,6 +106,13 @@
 
         <div id="notification-toast-container"></div>
     </div>
+
+    {% if firebase_chat_config %}
+    {{ firebase_chat_config|json_script:"firebase-chat-config" }}
+    {% if request.resolver_match.url_name != 'chat' %}
+    <script type="module" src="{% static 'chat_badge.js' %}?v=chat-2"></script>
+    {% endif %}
+    {% endif %}
 
     {% block extra_scripts %}
     {% endblock %}
