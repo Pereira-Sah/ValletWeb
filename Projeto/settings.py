@@ -25,8 +25,7 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-al2c6+6v2ydk#5g&h)__-^0_rdp9$v3ql(-2fdw#tvu_9*x3z!'
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-apenas-para-dev")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -58,13 +57,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'Projeto.urls'
@@ -91,13 +90,11 @@ WSGI_APPLICATION = 'Projeto.wsgi.application'
 ASGI_APPLICATION = 'Projeto.asgi.application'
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
