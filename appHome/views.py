@@ -32,12 +32,8 @@ from appHome.context_processors import (
 
 User = get_user_model()
 
-<<<<<<< HEAD
 API_BASE_URL = getattr(settings, "API_BASE_URL", "https://valletapi.onrender.com/")
-=======
-API_BASE_URL = getattr(settings, "API_BASE_URL", "http://127.0.0.1:8000")
 API_TIMEOUT = float(getattr(settings, "API_TIMEOUT", 6))
->>>>>>> origin
 
 def api_request(
     method: str,
