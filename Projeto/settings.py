@@ -159,10 +159,13 @@ CACHES = {
 }
 
 NOTIFICACOES_RESUMO_TTL = int(
-    os.environ.get("NOTIFICACOES_RESUMO_TTL", "20")
+    os.environ.get("NOTIFICACOES_RESUMO_TTL", "60")
 )
 NOME_ESTACIONAMENTO_TTL = int(
     os.environ.get("NOME_ESTACIONAMENTO_TTL", "600")
+)
+SIDEBAR_ESTACIONAMENTO_TTL = int(
+    os.environ.get("SIDEBAR_ESTACIONAMENTO_TTL", "300")
 )
 API_TIMEOUT = float(os.environ.get("API_TIMEOUT", "6"))
 

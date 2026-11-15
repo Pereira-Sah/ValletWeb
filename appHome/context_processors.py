@@ -1,4 +1,5 @@
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 from django.core.cache import cache
 
@@ -82,6 +83,36 @@ def definir_nome_estacionamento(id_estacionamento, nome):
     )
 
 
+def definir_dados_estacionamento(request, id_estacionamento, nome="", foto=""):
+    """Aquece o cache do sidebar com os dados já recebidos no login.
+
+    Evita a consulta a ``/estacionamento/buscar_estacionamento`` na primeira
+    página aberta depois de entrar.
+    """
+    id_estacionamento = str(id_estacionamento or "").strip()
+    if not id_estacionamento:
+        return
+
+    nome = str(nome or "").strip()
+    if not nome:
+        # Sem nome, deixa a consulta normal preencher o sidebar.
+        return
+
+    if not isinstance(foto, str) or not foto.strip().lower().startswith(("https://", "http://")):
+        foto = ""
+
+    cache.set(
+        f"{SIDEBAR_CACHE_PREFIX}:{_uid_usuario(request)}:{id_estacionamento}",
+        {
+            "nome_estacionamento": nome,
+            "foto_estacionamento": foto.strip(),
+        },
+        _ttl("SIDEBAR_ESTACIONAMENTO_TTL", 300),
+    )
+
+    definir_nome_estacionamento(id_estacionamento, nome)
+
+
 def obter_resumo_notificacoes(request, usar_cache=True):
     """Resumo leve (total e não lidas) com cache curto no Django."""
     id_estacionamento = str(
@@ -138,7 +169,7 @@ def obter_resumo_notificacoes(request, usar_cache=True):
         ).strip(),
     }
 
-    cache.set(chave, resumo, _ttl("NOTIFICACOES_RESUMO_TTL", 20))
+    cache.set(chave, resumo, _ttl("NOTIFICACOES_RESUMO_TTL", 60))
     return resumo
 
 
@@ -174,7 +205,7 @@ def _obter_dados_estacionamento(request, id_estacionamento):
             "nome_estacionamento": str(dados.get("nome") or ""),
             "foto_estacionamento": foto.strip(),
         }
-        cache.set(chave, resumo, _ttl("SIDEBAR_ESTACIONAMENTO_TTL", 60))
+        cache.set(chave, resumo, _ttl("SIDEBAR_ESTACIONAMENTO_TTL", 300))
         return resumo
     except (requests.RequestException, ValueError) as erro:
         print(f"[SIDEBAR ESTACIONAMENTO] Falha na consulta: {erro}")
@@ -194,29 +225,39 @@ def notificacoes_globais(request):
     if not request.session.get("id_token"):
         return contexto
 
-    resumo = obter_resumo_notificacoes(request)
-    contexto["notificacoes_nao_lidas"] = resumo.get("nao_lidas", 0)
-
     id_estacionamento = str(
         request.session.get("id_estacionamento") or ""
     ).strip()
 
     if not id_estacionamento:
+        resumo = obter_resumo_notificacoes(request)
+        contexto["notificacoes_nao_lidas"] = resumo.get("nao_lidas", 0)
+
         id_api = str(resumo.get("id_estacionamento") or "").strip()
 
         if id_api:
             id_estacionamento = id_api
             request.session["id_estacionamento"] = id_api
 
-            # A primeira consulta foi feita sem o ID. Aquece a chave correta
-            # para as próximas páginas não repetirem a busca.
             cache.set(
                 chave_resumo_notificacoes(request, id_api),
                 resumo,
-                _ttl("NOTIFICACOES_RESUMO_TTL", 20),
+                _ttl("NOTIFICACOES_RESUMO_TTL", 60),
             )
 
-    contexto.update(_obter_dados_estacionamento(request, id_estacionamento))
+        contexto.update(_obter_dados_estacionamento(request, id_estacionamento))
+        return contexto
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futuro_resumo = executor.submit(obter_resumo_notificacoes, request)
+        futuro_estacionamento = executor.submit(
+            _obter_dados_estacionamento, request, id_estacionamento
+        )
+        resumo = futuro_resumo.result()
+        dados_estacionamento = futuro_estacionamento.result()
+
+    contexto["notificacoes_nao_lidas"] = resumo.get("nao_lidas", 0)
+    contexto.update(dados_estacionamento)
 
     return contexto
 
