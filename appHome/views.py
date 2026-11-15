@@ -1,5 +1,6 @@
 import json
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from django.contrib.auth.decorators import login_required
@@ -25,7 +26,7 @@ from django.core.validators import validate_email
 from django.views.decorators.http import require_POST
 
 from appHome.context_processors import (
-    definir_nome_estacionamento,
+    definir_dados_estacionamento,
     invalidar_cache_notificacoes,
     obter_resumo_notificacoes,
 )
@@ -111,8 +112,17 @@ def firebase_login(request):
 
         request.session["id_token"] = id_token
 
-        perfil_res = api_request("GET", "auth/me", request)
-        
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futuro_perfil = executor.submit(api_request, "GET", "auth/me", request)
+            futuro_estacionamentos = executor.submit(
+                api_request,
+                "GET",
+                "estacionamento/listar_estacionamentos_usuario",
+                request,
+            )
+            perfil_res = futuro_perfil.result()
+            estac_res = futuro_estacionamentos.result()
+
         is_gestor = False
 
         if perfil_res and perfil_res.status_code == 200:
@@ -126,14 +136,9 @@ def firebase_login(request):
             if tipo_user in ["admin", "gestor", "administrador", "superadmin"]:
                 is_gestor = True
 
-            estac_res = api_request(
-                "GET",
-                "estacionamento/listar_estacionamentos_usuario",
-                request
-            )
-            
             id_estac = None
             nome_estac = ""
+            foto_estac = ""
 
             if estac_res and estac_res.status_code == 200:
                 estacionamentos = estac_res.json()
@@ -142,12 +147,16 @@ def firebase_login(request):
                     if isinstance(primeiro, dict):
                         id_estac = primeiro.get("id")
                         nome_estac = primeiro.get("nome") or ""
+                        foto_estac = primeiro.get("fotoEstacionamentoUri") or ""
 
             if id_estac:
-                request.session["id_estacionamento"] = str(id_estac).strip()
-                definir_nome_estacionamento(
-                    str(id_estac).strip(),
+                id_estac = str(id_estac).strip()
+                request.session["id_estacionamento"] = id_estac
+                definir_dados_estacionamento(
+                    request,
+                    id_estac,
                     nome_estac,
+                    foto_estac,
                 )
             else:
                 request.session["id_estacionamento"] = ""

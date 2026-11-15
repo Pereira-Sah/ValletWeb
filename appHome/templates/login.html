@@ -303,13 +303,19 @@ async function enviarFormulario(form) {
 
     <!-- AUTENTICAÇÃO (Preservada integralmente) -->
     <script>
-      document
-        .getElementById("loginForm")
-        .addEventListener("submit", async function (e) {
+      const loginForm = document.getElementById("loginForm");
+      const loginBotao = loginForm.querySelector('button[type="submit"]');
+      const loginTextoOriginal = loginBotao.textContent;
+
+      loginForm.addEventListener("submit", async function (e) {
           e.preventDefault();
 
           const email = document.getElementById("email").value;
           const password = document.getElementById("password").value;
+
+          loginBotao.disabled = true;
+          loginBotao.textContent = "Entrando…";
+          loginForm.setAttribute("aria-busy", "true");
 
           try {
             const resp = await fetch("/auth/firebase/", {
@@ -338,6 +344,10 @@ async function enviarFormulario(form) {
             }
           } catch (err) {
             alert("Erro de rede: " + err);
+          } finally {
+            loginBotao.disabled = false;
+            loginBotao.textContent = loginTextoOriginal;
+            loginForm.removeAttribute("aria-busy");
           }
         });
     </script>
