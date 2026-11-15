@@ -4,7 +4,7 @@
 {% block tituloPagina %}Notificações{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'notificacoes.css' %}?v=notificacoes-nova-ui-final">
+<link rel="stylesheet" href="{% static 'notificacoes.css' %}?v=lista-modal-2">
 {% endblock %}
 
 {% block content %}
@@ -18,7 +18,7 @@
             <input type="hidden" name="acao" value="marcar_todas_lidas">
             <button type="submit" class="btn btn-todas-lidas" {% if nao_lidas == 0 %}disabled{% endif %}>
                 <i class="bi bi-check2-all"></i>
-                Marcar Todas Lidas
+                Marcar todas como lidas
             </button>
         </form>
         {% endif %}
@@ -40,17 +40,17 @@
             </div>
 
             <div class="filtro-item">
-                <label for="filtro-placa">Placa ou Motivo</label>
+                <label for="filtro-placa">Placa ou motivo</label>
                 <input 
                     type="text" 
                     id="filtro-placa" 
                     name="placa" 
                     value="{{ filtro_placa }}" 
-                    placeholder="Digite para buscar...">
+                    placeholder="Placa ou motivo">
             </div>
 
             <div class="filtro-item">
-                <label for="filtro-inicio">Data Inicio</label>
+                <label for="filtro-inicio">De</label>
                 <input 
                     type="date" 
                     id="filtro-inicio" 
@@ -59,7 +59,7 @@
             </div>
 
             <div class="filtro-item">
-                <label for="filtro-fim">Data Fim</label>
+                <label for="filtro-fim">Até</label>
                 <input 
                     type="date" 
                     id="filtro-fim" 
@@ -90,118 +90,17 @@
         </div>
     </form>
 
-    {% if erro_notificacoes %}
-    <div class="notificacoes-erro">
-        <i class="bi bi-exclamation-triangle"></i>
-        <p>{{ erro_notificacoes }}</p>
-    </div>
-    {% endif %}
-
-    <!-- Grid de Notificações -->
-    <div class="notificacoes-grid">
-        {% if notificacoes %}
-            {% for n in notificacoes %}
-            <article class="notificacao-card {% if not n.lida %}nao-lida{% endif %}">
-                
-                <!-- LADO ESQUERDO: Miniatura -->
-                <div class="notificacao-miniatura">
-                    {% if n.imagem %}
-                        <img src="{{ n.imagem }}" 
-                             alt="Placa {{ n.placa|default:'Capturada' }}" 
-                             class="foto-placa" 
-                             onclick="abrirModalImagem('{{ n.imagem }}')" 
-                             title="Clique para ampliar">
-                    {% elif n.tipo == 'obstrucao_camera' %}
-                        <div class="icone-fallback"><i class="bi bi-camera-video-off"></i></div>
-                    {% elif n.tipo == 'pagamento_nao_confirmado' %}
-                        <div class="icone-fallback"><i class="bi bi-currency-dollar"></i></div>
-                    {% elif n.tipo == 'alerta_seguranca' %}
-                        <div class="icone-fallback"><i class="bi bi-shield-exclamation"></i></div>
-                    {% elif n.tipo == 'sistema_erro' %}
-                        <div class="icone-fallback alerta"><i class="bi bi-exclamation-octagon"></i></div>
-                    {% elif n.tipo == 'sistema_alerta_estacionamento' %}
-                        <div class="icone-fallback"><i class="bi bi-info-circle"></i></div>
-                    {% elif n.tipo == 'estacionamento_reservado' or n.tipo == 'estacionamento_sem_reserva' %}
-                        <div class="icone-fallback"><i class="bi bi-car-front"></i></div>
-                    {% else %}
-                        <div class="icone-fallback"><i class="bi bi-bell"></i></div>
-                    {% endif %}
-                </div>
-
-                <!-- LADO DIREITO: Conteúdo -->
-                <div class="notificacao-conteudo">
-                    <header class="notificacao-topo">
-                        <span class="badge-tipo">
-                            {% if n.tipo_display %}{{ n.tipo_display }}{% else %}Notificação{% endif %}
-                        </span>
-                        <span class="notificacao-tempo">
-                            <i class="bi bi-clock"></i> 
-                            {% if n.data %}{{ n.data }}{% else %}Sem data{% endif %}
-                            {% if not n.lida %}<span class="tag-nao-lida">NÃO LIDA</span>{% endif %}
-                        </span>
-                    </header>
-
-                    <div class="notificacao-corpo">
-                        <p class="motivo-texto">
-                            {% if n.mensagem %}{{ n.mensagem }}{% elif n.titulo %}{{ n.titulo }}{% else %}Sem descrição.{% endif %}
-                        </p>
-                        
-                        <div class="dados-extras">
-                            {% if n.vaga_numero and n.vaga_numero != "-" %}
-                                <span class="dado-extra"><i class="bi bi-p-square"></i> <strong>Vaga:</strong> {{ n.vaga_numero }}</span>
-                            {% endif %}
-                            {% if n.placa and n.placa != "-" %}
-                                <span class="dado-extra">
-                                    <i class="bi bi-car-front"></i> <strong>Placa:</strong> {{ n.placa }}
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <footer class="notificacao-rodape">
-                        <form method="post" class="form-acao-linha">
-                            {% csrf_token %}
-                            <input type="hidden" name="notificacao_id" value="{{ n.id }}">
-                            
-                            {% if not n.lida %}
-                            <button type="submit" name="acao" value="marcar_lida" class="btn-acao btn-marcar" aria-label="Marcar como Lida">
-                                <i class="bi bi-check-circle"></i> Marcar Lida
-                            </button>
-                            {% endif %}
-                            
-                            <button type="submit" name="acao" value="excluir" class="btn-acao btn-excluir" aria-label="Excluir notificação">
-                                <i class="bi bi-trash"></i> Excluir
-                            </button>
-                        </form>
-                    </footer>
-                </div>
-            </article>
-            {% endfor %}
-        {% elif not erro_notificacoes %}
-            <div class="empty">
-                <i class="bi bi-inbox"></i>
-                <p>Nenhuma notificação encontrada no período.</p>
-            </div>
-        {% endif %}
-    </div>
+    <section id="notificacoes-lista" aria-label="Lista de notificações">
+        {% include "partials/_notificacoes_list.html" %}
+    </section>
+    <dialog id="notificacao-modal" class="noti-modal" aria-labelledby="noti-modal-titulo">
+        <div class="noti-modal-shell">
+            <button type="button" class="noti-fechar" data-fechar aria-label="Fechar detalhes"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+            <div id="noti-modal-conteudo"></div>
+        </div>
+    </dialog>
 </div>
-
-<!-- Modal Lightbox (Tamanho Expandido) -->
-<div id="imagem-modal" class="modal-imagem-overlay" onclick="fecharModalImagem()">
-    <span class="modal-imagem-fechar">&times;</span>
-    <img id="imagem-modal-src" class="modal-imagem-conteudo" alt="Placa ampliada">
-</div>
-
-<script>
-function abrirModalImagem(src) {
-    const modal = document.getElementById('imagem-modal');
-    const img = document.getElementById('imagem-modal-src');
-    img.src = src;
-    modal.style.display = 'flex';
-}
-
-function fecharModalImagem() {
-    document.getElementById('imagem-modal').style.display = 'none';
-}
-</script>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{% static 'notificacoes.js' %}?v=lista-modal-2" defer></script>
 {% endblock %}

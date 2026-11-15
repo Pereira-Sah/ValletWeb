@@ -470,7 +470,8 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
         acao = request.POST.get("acao")
         notificacao_id = request.POST.get("notificacao_id")
 
-        payload = {"acao": acao, "notificacao_id": notificacao_id}
+        acao_api = "marcar_todas_como_lidas" if acao == "marcar_todas_lidas" else acao
+        payload = {"acao": acao_api, "notificacao_id": notificacao_id}
         response = api_request("POST", "notificacoes/acao/", request, data=payload)
 
         if response and response.status_code == 200:
