@@ -96,11 +96,15 @@ def firebase_login(request):
         params = {"email": email, "senha": senha}
         api_res = api_request("POST", "auth/login", request, params=params)
 
-        if not api_res or api_res.status_code != 200:
+        if api_res is None or api_res.status_code != 200:
             err_msg = "Credenciais inválidas"
-            if api_res and api_res.headers.get("Content-Type") == "application/json":
-                err_msg = api_res.json().get("detail", err_msg)
-            return JsonResponse({"error": err_msg}, status=api_res.status_code if api_res else 502)
+            if api_res is not None and "application/json" in api_res.headers.get("Content-Type", ""):
+                try:
+                    err_msg = api_res.json().get("detail", err_msg)
+                except ValueError:
+                    pass
+            status = api_res.status_code if api_res is not None else 502
+            return JsonResponse({"error": err_msg}, status=status)
 
         login_data = api_res.json()
         uid = login_data.get("localId")
