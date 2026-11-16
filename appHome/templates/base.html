@@ -67,6 +67,14 @@
                     <span>Reservas</span>
                 </a>
 
+                <a href="{% url 'monitoramento' %}" title="Monitoramento" aria-label="Monitoramento"
+                {% if request.resolver_match.url_name == 'monitoramento' %}
+                aria-current="page"
+                {% endif %}>
+                    <i class="bi bi-camera-video-fill" aria-hidden="true"></i>
+                    <span>Monitoramento</span>
+                </a>
+
                 <a href="{% url 'chat' %}"
                 id="navbar-chat-link"
                 {% if request.resolver_match.url_name == 'chat' %}

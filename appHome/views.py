@@ -299,6 +299,17 @@ def reservas(request):
 
 @never_cache
 @login_required(login_url="/login/")
+def monitoramento(request):
+    return render(request, "monitoramento.html", {
+        "stream_url": settings.IOT_STREAM_URL,
+        "user_name": request.session.get("user_name", "Visitante"),
+        "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
+        "fotoPerfil": request.session.get("fotoPerfil", ""),
+    })
+
+
+@never_cache
+@login_required(login_url="/login/")
 def gestor(request):
     return render(request, "dashboard.html", {
         "user_name": request.session.get("user_name", "Visitante"),
