@@ -4,7 +4,7 @@
 {% block tituloPagina %}Reservas{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'reservas.css' %}?v=refino-20261115-2">
+<link rel="stylesheet" href="{% static 'reservas.css' %}?v=page-title-20261116-1">
 {% endblock %}
 
 {% block content %}
@@ -84,7 +84,8 @@
                     Aplicar
                 </button>
 
-                <a href="{% url 'reservas' %}" class="btn btn-secondary">
+                <a href="/reservas/" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
                     Limpar
                 </a>
             </div>
