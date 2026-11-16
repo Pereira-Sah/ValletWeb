@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "appHome/templates/home.html"
+        ],
+        "createdAt": "2026-11-15T21:35:21.698Z",
+        "reason": "Agent: verified rendered desktop/mobile hierarchy. home.css sets hero h1 to 3.1rem or larger, section h2 to 2rem or larger, versus body text at 1rem to 1.4rem; Django static stylesheet resolution makes this template-only finding a false positive."
+      }
+    ]
+  }
+}

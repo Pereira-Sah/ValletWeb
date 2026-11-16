@@ -4,7 +4,7 @@
 {% block tituloPagina %}Reservas{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'reservas.css' %}?v=20261023-3">
+<link rel="stylesheet" href="{% static 'reservas.css' %}?v=refino-20261115-2">
 {% endblock %}
 
 {% block content %}
@@ -100,7 +100,7 @@
     <div class="reservas-grid">
         {% if reservas %}
             {% for r in reservas %}
-            <article class="reserva-card">
+            <article class="reserva-card reserva-card-{{ r.status|default:'desconhecida' }}">
                 <header class="reserva-top">
                     <div class="info-basica">
                         {% if r.foto and r.foto != "/static/default_profile.png" %}
@@ -128,7 +128,7 @@
                     </div>
 
                     <span class="status status-{{ r.status|default:'desconhecida' }}">
-                        {{ r.status|default:'desconhecida'|capfirst }}
+                        {% if r.status == 'concluida' %}Concluída{% else %}{{ r.status|default:'desconhecida'|capfirst }}{% endif %}
                     </span>
                 </header>
 
@@ -145,12 +145,22 @@
 
                     <div class="info-block">
                         <span class="label">Início</span>
-                        <strong>{{ r.inicio|default:"—" }}</strong>
+                        <strong class="reserva-data-hora">
+                            {% if r.inicio|length > 10 %}
+                            <span class="reserva-data">{{ r.inicio|slice:':10' }}</span>
+                            <span class="reserva-hora">{{ r.inicio|slice:'11:' }}</span>
+                            {% else %}{{ r.inicio|default:"—" }}{% endif %}
+                        </strong>
                     </div>
 
                     <div class="info-block">
                         <span class="label">Fim</span>
-                        <strong>{{ r.fim|default:"—" }}</strong>
+                        <strong class="reserva-data-hora">
+                            {% if r.fim|length > 10 %}
+                            <span class="reserva-data">{{ r.fim|slice:':10' }}</span>
+                            <span class="reserva-hora">{{ r.fim|slice:'11:' }}</span>
+                            {% else %}{{ r.fim|default:"—" }}{% endif %}
+                        </strong>
                     </div>
                 </section>
 
@@ -161,7 +171,7 @@
                        target="_blank"
                        rel="noopener">
                         <i class="bi bi-whatsapp"></i>
-                        Contatar Motorista
+                        WhatsApp
                     </a>
                     {% else %}
                     <span class="sem-whats">

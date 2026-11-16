@@ -1,0 +1,104 @@
+<dialog id="contato-modal" class="contato-modal" aria-labelledby="contato-titulo" aria-describedby="contato-descricao">
+        <div class="contato-panel">
+            <header class="contato-header">
+                <div class="contato-heading">
+                    <div>
+                        <h2 id="contato-titulo">Como podemos ajudar?</h2>
+                    </div>
+                </div>
+                <button type="button" class="contato-close" data-close-contact aria-label="Fechar contato">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+                </button>
+            </header>
+
+            <p id="contato-descricao" class="contato-description">
+                Solicite seu acesso ou fale com a nossa equipe.
+            </p>
+
+           <form id="contatoForm" class="contato-form" method="post" data-url="{% url 'contato_enviar' %}">
+                {% csrf_token %}
+                <input type="text" name="website" tabindex="-1" autocomplete="off"
+                    style="position:absolute;left:-9999px;opacity:0" aria-hidden="true">
+                <div class="contato-fields">
+                    <div class="contato-field">
+                        <label for="contato-nome">Nome</label>
+                        <input id="contato-nome" name="nome" type="text" autocomplete="name" placeholder="Seu nome" maxlength="100" required autofocus>
+                    </div>
+                    <div class="contato-field">
+                        <label for="contato-email">E-mail</label>
+                        <input id="contato-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" maxlength="254" required>
+                    </div>
+                    <div class="contato-field contato-field-wide">
+                        <label for="contato-estacionamento">Estacionamento <span>(opcional)</span></label>
+                        <input id="contato-estacionamento" name="estacionamento" type="text" autocomplete="organization" placeholder="Nome do estacionamento" maxlength="150">
+                    </div>
+                    <div class="contato-field contato-field-wide">
+                        <label for="contato-assunto">Assunto</label>
+                        <select id="contato-assunto" name="assunto" required>
+                            <option value="" selected disabled>Selecione o assunto</option>
+                            <option value="acesso">Solicitar acesso</option>
+                            <option value="suporte">Problema para entrar</option>
+                            <option value="outro">Outro assunto</option>
+                        </select>
+                    </div>
+                    <div class="contato-field contato-field-wide">
+                        <label for="contato-mensagem">Mensagem</label>
+                        <textarea id="contato-mensagem" name="mensagem" rows="4" maxlength="3000" placeholder="Conte como podemos ajudar você." required></textarea>
+                    </div>
+                </div>
+
+                <div id="contato-feedback" class="contato-feedback" role="status" aria-live="polite" hidden></div>
+
+                <footer class="contato-footer">
+                    <p>Responderemos pelo e-mail informado.</p>
+                    <div class="contato-actions">
+                        <button type="button" class="contato-cancel" data-close-contact>Cancelar</button>
+                        <button type="submit" class="contato-submit">
+                            <i class="bi bi-send" aria-hidden="true"></i>
+                            Enviar mensagem
+                        </button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </dialog>
+{% if with_password %}
+<dialog id="recuperar-senha-modal" class="contato-modal recuperar-senha-modal" aria-labelledby="recuperar-titulo" aria-describedby="recuperar-descricao">
+        <div class="contato-panel">
+            <header class="contato-header">
+                <div class="contato-heading">
+                    <div>
+                        <h2 id="recuperar-titulo">Esqueceu sua senha?</h2>
+                    </div>
+                </div>
+                <button type="button" class="contato-close" data-close-password aria-label="Fechar recuperação de senha">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+                </button>
+            </header>
+
+            <p id="recuperar-descricao" class="contato-description">
+                Informe o e-mail cadastrado para recuperar seu acesso.
+            </p>
+
+            <form id="recuperarSenhaForm" class="contato-form" method="post" data-url="{% url 'recuperar_senha' %}">
+                {% csrf_token %}
+                <div class="contato-field">
+                    <label for="recuperar-email">E-mail cadastrado</label>
+                    <input id="recuperar-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" maxlength="254" required autofocus>
+                </div>
+
+                <div id="recuperar-feedback" class="contato-feedback" role="status" aria-live="polite" hidden></div>
+
+                <footer class="contato-footer recuperar-footer">
+                    <div class="contato-actions">
+                        <button type="button" class="contato-cancel" data-close-password>Voltar</button>
+                        <button type="submit" class="contato-submit">
+                            <i class="bi bi-envelope" aria-hidden="true"></i>
+                            Enviar link
+                        </button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </dialog>
+{% endif %}

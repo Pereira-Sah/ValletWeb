@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block tituloPagina %}Monitoramento{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'monitoramento.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="monitoramento-page" data-stream-url="{{ stream_url }}">
+    <header class="monitoramento-header">
+        <h1>Monitoramento</h1>
+        <p class="monitoramento-subtitle">Visualize as câmeras voltadas para as vagas do estacionamento.</p>
+        <p class="monitoramento-demo">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Uma câmera ao vivo. As demais são de demonstração.
+        </p>
+    </header>
+
+    <div class="monitoramento-toolbar" hidden>
+        <div class="monitoramento-filters" role="group" aria-label="Filtrar câmeras por status">
+            <button type="button" data-status="all" aria-pressed="true" aria-controls="monitoramento-grid">Todas</button>
+            <button type="button" data-status="online" aria-pressed="false" aria-controls="monitoramento-grid">Online</button>
+            <button type="button" data-status="offline" aria-pressed="false" aria-controls="monitoramento-grid">Offline</button>
+        </div>
+        <p class="monitoramento-count" role="status" aria-live="polite" aria-atomic="true"></p>
+    </div>
+
+    <div id="monitoramento-grid" class="monitoramento-grid"></div>
+    <div class="monitoramento-empty" hidden>
+        <i class="bi bi-camera-video-off" aria-hidden="true"></i>
+        <p>Nenhuma câmera com esse status</p>
+    </div>
+    <noscript><p>Ative o JavaScript para visualizar as câmeras e usar os filtros.</p></noscript>
+
+    <template id="monitoramento-card">
+        <article class="monitoramento-card">
+            <div class="monitoramento-media"></div>
+            <div class="monitoramento-details">
+                <div class="monitoramento-card-heading">
+                    <h2></h2>
+                    <span class="monitoramento-status"><span aria-hidden="true"></span><span data-status-label></span></span>
+                </div>
+                <p class="monitoramento-area"></p>
+                <div class="monitoramento-card-action"></div>
+            </div>
+        </article>
+    </template>
+
+    <dialog class="monitoramento-modal" aria-labelledby="monitoramento-modal-title" aria-describedby="monitoramento-modal-area">
+        <header class="monitoramento-modal-header">
+            <div>
+                <h2 id="monitoramento-modal-title"></h2>
+                <p id="monitoramento-modal-area"></p>
+            </div>
+            <button type="button" class="monitoramento-close" autofocus>
+                <i class="bi bi-x-lg" aria-hidden="true"></i> Fechar
+            </button>
+        </header>
+        <div class="monitoramento-modal-media"></div>
+        <p class="monitoramento-modal-note"></p>
+    </dialog>
+
+    {# Configuração das câmeras. A URL real vem do atributo data-stream-url. #}
+    <script id="monitoramento-data" type="application/json">
+    [
+        {
+            "id": "camera-01",
+            "name": "Câmera 01 · Webcam ao vivo",
+            "area": "Webcam do ValletIoT",
+            "kind": "live"
+        },
+        {
+            "id": "camera-02",
+            "name": "Câmera 02 · Demonstração",
+            "kind": "demo",
+            "area": "Setor B · Vagas B01 a B08",
+            "status": "online",
+            "image": "{% static 'assets/monitoramento/setor-b.jpg' %}",
+            "alt": "Vista aérea de um estacionamento asfaltado, com carros e vagas sinalizadas junto à via de circulação."
+        },
+        {
+            "id": "camera-03",
+            "name": "Câmera 03 · Demonstração",
+            "kind": "demo",
+            "area": "Setor C · Vagas C01 a C06",
+            "status": "online",
+            "image": "{% static 'assets/monitoramento/setor-c.jpg' %}",
+            "alt": "Vista elevada de outro pátio de estacionamento, com faixas brancas delimitando as vagas."
+        },
+        {
+            "id": "camera-04",
+            "name": "Câmera 04 · Demonstração",
+            "kind": "demo",
+            "area": "Setor D · Vagas D01 a D04",
+            "status": "offline",
+            "image": null,
+            "alt": ""
+        }
+    ]
+    </script>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'monitoramento.js' %}" defer></script>
+{% endblock %}

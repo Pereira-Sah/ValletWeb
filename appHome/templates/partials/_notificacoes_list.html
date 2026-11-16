@@ -1,74 +1,70 @@
 <span id="notificacoes-estado" hidden data-nao-lidas="{{ nao_lidas|default:0 }}"></span>
-
 {% if erro_notificacoes %}
-<div class="alert alert-danger" role="alert">{{ erro_notificacoes }}</div>
-{% elif notificacoes %} {% for item in notificacoes %}
-<div class="notificacao-card {% if not item.lida %}nao-lida{% else %}lida{% endif %} caixa-cantoneira"
-    id="notif-{{ item.id }}">
-    <div>
-        {% if item.imagem %}
-        <img src="{{ item.imagem }}" alt="{{item.placa}}" style="height: 100px;width: 150px;" />
-        {% endif %}
-    </div>
-    <div>
-        <div class="notificacao-header">
-            <span class="notificacao-tipo tipo-{{ item.tipo }}">
-                {{ item.tipo_display|upper }}
-            </span>
-        </div>
-
-        <div>
-            <div class="notificacao-conteudo">
-                {% if item.titulo and item.titulo != "Alerta do Sistema" %}
-                <h4 class="notificacao-titulo">{{ item.titulo }}</h4>
-                {% endif %}
-
-                <p>{{ item.mensagem }}</p>
-            </div>
-
-            <div class="notificacao-footer">
-                <div class="notificacao-data">
-                    <i class="bi bi-clock"></i>
-                    <span>{{ item.data }}</span>
-                </div>
-
-                {% if not item.lida %}
-                <span class="badge bg-warning">NÃO LIDA</span>
-                {% else %}
-                <span class="badge bg-success">LIDA</span>
-                {% endif %}
-            </div>
-        </div>
-        <div class="notificacao-acoes">
-            {% if not item.lida %}
-            <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
-                {% csrf_token %}
-                <input type="hidden" name="notificacao_id" value="{{ item.id }}" />
-                <input type="hidden" name="acao" value="marcar_lida" />
-
-                <button type="submit" class="btn-acao marcar-lida" title="Marcar como lida">
-                    <i class="bi bi-check"></i>
-                </button>
-            </form>
-            {% endif %}
-
-            <form method="post" class="d-inline" action="?{{ request.GET.urlencode }}">
-                {% csrf_token %}
-                <input type="hidden" name="notificacao_id" value="{{ item.id }}" />
-                <input type="hidden" name="acao" value="excluir" />
-
-                <button type="submit" class="btn-acao btn-danger" onclick="return confirm('Excluir esta notificação?');"
-                    title="Excluir">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </form>
-        </div>
-    </div>
+<div class="noti-vazio noti-erro" role="alert">
+    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <h2>Não foi possível carregar as notificações</h2>
+    <p>{{ erro_notificacoes }}</p>
+    <a class="noti-btn" href="?{{ request.GET.urlencode }}">Tentar novamente</a>
 </div>
-{% endfor %} {% else %}
-<div class="empty-state">
-    <i class="bi bi-bell-slash"></i>
-    <h4>Nenhuma notificação encontrada</h4>
+{% elif notificacoes %}
+<div class="noti-lista">
+{% for n in notificacoes %}
+    {% ifchanged n.data|slice:':10' %}
+    <h2 class="noti-dia"><i class="bi bi-calendar3" aria-hidden="true"></i> <span data-noti-date="{{ n.data|slice:':10' }}">{{ n.data|slice:':10'|default:'Sem data' }}</span></h2>
+    <div class="noti-colunas" aria-hidden="true"><span>Ocorrência</span><span>Vaga / placa</span><span>Hora</span><span>Leitura</span><span></span></div>
+    {% endifchanged %}
+    <article class="noti-linha {% if n.tipo == 'obstrucao_camera' %}noti-obstrucao{% elif n.tipo == 'estacionamento_sem_reserva' %}noti-sem-reserva{% endif %}" id="notif-{{ n.id }}">
+        <h3 class="noti-ocorrencia">
+            {% if n.tipo == 'obstrucao_camera' %}<i class="bi bi-exclamation-triangle noti-ambar" aria-hidden="true"></i>
+            {% elif n.tipo == 'alerta_saida' %}<i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+            {% elif n.tipo == 'estacionamento_sem_reserva' or n.tipo == 'estacionamento_reservado' %}<i class="bi bi-car-front" aria-hidden="true"></i>
+            {% else %}<i class="bi bi-bell" aria-hidden="true"></i>{% endif %}
+            <span>{% if n.tipo == 'obstrucao_camera' %}Obstrução na câmera{% else %}{{ n.tipo_display|default:'Notificação' }}{% endif %}</span>
+        </h3>
+        <div class="noti-veiculo">
+            {% if n.vaga_numero and n.vaga_numero != '-' and n.vaga_numero != '—' %}<span><span class="noti-mobile-label">Vaga </span>{{ n.vaga_numero }}</span>{% endif %}
+            {% if n.placa and n.placa != '-' and n.placa != '—' %}<span>{{ n.placa }}</span>{% endif %}
+            {% if not n.vaga_numero and not n.placa %}<span>—</span>{% endif %}
+        </div>
+        <span class="noti-hora" title="{{ n.data }}">{{ n.data|slice:'11:'|default:'—' }}</span>
+        <span class="noti-leitura {% if not n.lida %}noti-nao-lida{% endif %}">{% if n.lida %}Lida{% else %}Não lida{% endif %}</span>
+        <button type="button" class="noti-btn noti-detalhes" data-detalhes aria-label="Detalhes: {{ n.tipo_display|default:'Notificação' }}{% if n.placa %}, {{ n.placa }}{% endif %}">Detalhes</button>
+        <template class="noti-dados">
+            <header class="noti-modal-header {% if n.tipo == 'obstrucao_camera' %}noti-obstrucao{% elif n.tipo == 'estacionamento_sem_reserva' %}noti-sem-reserva{% endif %}">
+                <h2 id="noti-modal-titulo">{% if n.tipo == 'obstrucao_camera' %}Obstrução na câmera{% else %}{{ n.tipo_display|default:'Notificação' }}{% endif %}</h2>
+                <span class="noti-leitura {% if not n.lida %}noti-nao-lida{% endif %}">{% if n.lida %}Lida{% else %}Não lida{% endif %}</span>
+            </header>
+            <p class="noti-mensagem">{% if n.mensagem %}{{ n.mensagem }}{% elif n.titulo %}{{ n.titulo }}{% else %}Sem descrição.{% endif %}</p>
+            <dl class="noti-metadados">
+                {% if n.vaga_numero and n.vaga_numero != '-' and n.vaga_numero != '—' %}<div><dt>Vaga</dt><dd>{{ n.vaga_numero }}</dd></div>{% endif %}
+                {% if n.placa and n.placa != '-' and n.placa != '—' %}<div><dt>Placa</dt><dd>{{ n.placa }}</dd></div>{% endif %}
+                <div><dt>Data e hora</dt><dd data-noti-date="{{ n.data }}">{{ n.data|default:'Sem data' }}</dd></div>
+            </dl>
+            {% if n.imagem %}
+            <figure class="noti-foto">
+                <figcaption>Foto da ocorrência{% if n.placa and n.placa != '-' and n.placa != '—' %} · {{ n.placa }}{% endif %}</figcaption>
+                <img src="{{ n.imagem }}" alt="Foto da ocorrência{% if n.placa %}, placa {{ n.placa }}{% endif %}">
+                <p class="noti-foto-erro" hidden>Não foi possível carregar a foto. Tente abri-la em tamanho original.</p>
+                <a class="noti-btn" href="{{ n.imagem }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-zoom-in" aria-hidden="true"></i> Ampliar foto<span class="noti-sr"> (abre em nova aba)</span></a>
+            </figure>
+            {% endif %}
+            <footer class="noti-modal-footer">
+                <form method="post" action="?{{ request.GET.urlencode }}" class="noti-acoes">
+                    {% csrf_token %}
+                    <input type="hidden" name="notificacao_id" value="{{ n.id }}">
+                    <button type="submit" name="acao" value="excluir" class="noti-btn noti-excluir"><i class="bi bi-trash" aria-hidden="true"></i> Excluir</button>
+                    {% if not n.lida %}<button type="submit" name="acao" value="marcar_lida" class="noti-btn noti-primary"><i class="bi bi-check2" aria-hidden="true"></i> Marcar como lida</button>{% endif %}
+                </form>
+            </footer>
+        </template>
+    </article>
+{% endfor %}
+</div>
+{% else %}
+<div class="noti-vazio">
+    <i class="bi bi-bell-slash" aria-hidden="true"></i>
+    <h2>Nenhuma notificação encontrada</h2>
     <p>Não há notificações que correspondam aos filtros aplicados.</p>
+    <a href="/notificacoes/" class="noti-btn">Limpar filtros</a>
 </div>
 {% endif %}

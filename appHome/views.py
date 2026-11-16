@@ -303,6 +303,17 @@ def reservas(request):
 
 @never_cache
 @login_required(login_url="/login/")
+def monitoramento(request):
+    return render(request, "monitoramento.html", {
+        "stream_url": settings.IOT_STREAM_URL,
+        "user_name": request.session.get("user_name", "Visitante"),
+        "user_cargo": request.session.get("user_cargo", "Cargo Desconhecido"),
+        "fotoPerfil": request.session.get("fotoPerfil", ""),
+    })
+
+
+@never_cache
+@login_required(login_url="/login/")
 def gestor(request):
     return render(request, "dashboard.html", {
         "user_name": request.session.get("user_name", "Visitante"),
@@ -474,7 +485,8 @@ class NotificacoesAdminView(LoginRequiredMixin, View):
         acao = request.POST.get("acao")
         notificacao_id = request.POST.get("notificacao_id")
 
-        payload = {"acao": acao, "notificacao_id": notificacao_id}
+        acao_api = "marcar_todas_como_lidas" if acao == "marcar_todas_lidas" else acao
+        payload = {"acao": acao_api, "notificacao_id": notificacao_id}
         response = api_request("POST", "notificacoes/acao/", request, data=payload)
 
         if response and response.status_code == 200:

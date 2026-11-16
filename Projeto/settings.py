@@ -182,6 +182,11 @@ API_TIMEOUT = float(os.environ.get("API_TIMEOUT", "6"))
 
 LOGIN_URL = "/login/"
 
+# Consumido diretamente pelo navegador na página Monitoramento.
+IOT_STREAM_URL = os.getenv(
+    "IOT_STREAM_URL", "http://127.0.0.1:5000/video_feed"
+).strip() or "http://127.0.0.1:5000/video_feed"
+
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

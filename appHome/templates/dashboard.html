@@ -4,7 +4,7 @@
 {% block tituloPagina %}Dashboard{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'dashboard.css' %}?v=gestor-ajustes-1" />
+<link rel="stylesheet" href="{% static 'dashboard.css' %}?v=horarios-modal-2" />
 {% endblock %}
 
 {% block content %}
@@ -112,32 +112,38 @@
                     ></canvas>
                 </div>
             </article>
-            <article class="vd-card vd-status">
+            <article class="vd-card vd-peak">
                 <div class="vd-card-heading">
                     <div>
-                        <h2>Situação das reservas</h2>
-                        <p>Estado registrado na consulta</p>
+                        <h2>Faixas de maior ocupação</h2>
+                        <p>Reservas por faixa de 1h · São Paulo</p>
                     </div>
                 </div>
-                <p class="vd-empty" id="statusEmpty">
+                <p class="vd-empty" id="peakEmpty">
                     Aguardando dados do período.
                 </p>
                 <div
-                    class="vd-canvas vd-canvas-status"
-                    id="statusCanvasHolder"
+                    class="vd-canvas vd-canvas-peak"
+                    id="peakCanvasHolder"
                     hidden
                 >
                     <canvas
-                        id="statusReservasChart"
+                        id="horariosPicoChart"
                         role="img"
-                        aria-label="Distribuição por situação."
+                        aria-label="Reservas por faixa horária no período selecionado."
                     ></canvas>
                 </div>
-                <ul
-                    class="vd-status-list"
-                    id="statusLegend"
-                    aria-label="Quantidades por situação"
-                ></ul>
+                <div class="vd-peak-summary" id="peakSummary" role="status" hidden>
+                    <p class="vd-peak-label">Maior movimento</p>
+                    <ul class="vd-peak-times" id="peakTimeList"></ul>
+                    <p class="vd-peak-more" id="peakMore" hidden></p>
+                </div>
+                <p class="vd-note">Acumulado no período. Canceladas não entram.</p>
+                <button type="button" class="vd-hourly-open" id="peakDetailsButton"
+                        aria-haspopup="dialog" aria-controls="hourlyModal" disabled>
+                    <i class="bi bi-clock" aria-hidden="true"></i>
+                    Ver quantidades por horário
+                </button>
             </article>
         </section>
         <div class="vd-bottom">
@@ -189,6 +195,28 @@
             </aside>
         </div>
     </div>
+    <dialog class="vd-hourly-modal" id="hourlyModal"
+            aria-labelledby="hourlyTitle" aria-describedby="hourlyPeriod hourlyNote">
+        <header class="vd-hourly-header">
+            <div>
+                <h2 id="hourlyTitle">Reservas por horário</h2>
+                <p id="hourlyPeriod">Período selecionado</p>
+            </div>
+            <button type="button" class="vd-hourly-close" id="hourlyClose" autofocus>
+                <i class="bi bi-x-lg" aria-hidden="true"></i> Fechar
+            </button>
+        </header>
+        <div class="vd-hourly-scroll" tabindex="0" role="region" aria-label="Quantidades nas 24 faixas horárias">
+            <table class="vd-hourly-table">
+                <caption class="vd-sr-only">Reservas por faixa horária, acumuladas nas datas do período selecionado</caption>
+                <thead><tr><th scope="col">Horário</th><th scope="col">Reservas</th></tr></thead>
+                <tbody id="peakTableBody"></tbody>
+            </table>
+        </div>
+        <footer class="vd-hourly-footer">
+            <p id="hourlyNote">Acumulado no período. Reservas canceladas não entram.</p>
+        </footer>
+    </dialog>
 </div>
 {% endblock %}
 {% block extra_scripts %}
@@ -202,25 +230,49 @@
             month = byId("dashboardMonth");
         const message = byId("dashboardMessage"),
             results = byId("dashboardResults");
+        const hourlyModal = byId("hourlyModal");
+        const hourlyButton = byId("peakDetailsButton");
+        const hourlyClose = byId("hourlyClose");
+        let previousBodyPadding;
+        hourlyButton.addEventListener("click", () => {
+            if (hourlyModal.open) return;
+            // Compensa a barra de rolagem para manter a página na mesma posição.
+            previousBodyPadding = document.body.style.paddingRight;
+            const previousBodyWidth = document.body.clientWidth;
+            hourlyModal.showModal();
+            const expansion = document.body.clientWidth - previousBodyWidth;
+            if (expansion > 0) {
+                document.body.style.paddingRight = `${parseFloat(getComputedStyle(document.body).paddingRight) + expansion}px`;
+            }
+            hourlyModal.querySelector(".vd-hourly-scroll").scrollTop = 0;
+        });
+        hourlyClose.addEventListener("click", () => hourlyModal.close());
+        hourlyModal.addEventListener("close", () => {
+            document.body.style.paddingRight = previousBodyPadding;
+            const target = hourlyButton.disabled ? period : hourlyButton;
+            target.focus({ preventScroll: true });
+        });
+        hourlyModal.addEventListener("keydown", event => {
+            if (event.key !== "Tab") return;
+            const controls = [hourlyClose, hourlyModal.querySelector(".vd-hourly-scroll")];
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault(); last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault(); first.focus();
+            }
+        });
+        hourlyModal.addEventListener("click", event => {
+            if (event.target !== hourlyModal) return;
+            const rect = hourlyModal.getBoundingClientRect();
+            if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) hourlyModal.close();
+        });
         const localCache = new Map();
         let activeRequest = null,
             requestVersion = 0,
             dailyChart = null,
-            statusChart = null,
+            peakChart = null,
             billingChart = null;
-        const colors = {
-            confirmadas: "#637365",
-            concluidas: "#3B5042",
-            canceladas: "#97A697",
-            horario_encerrado: "#7E7961",
-            aguardando_pagamento: "#879A85",
-            pendentes: "#A3AA92",
-            outros: "#758181",
-        };
-        const shortLabels = {
-            horario_encerrado: "Horário encerrado",
-            concluidas: "Concluídas",
-        };
         const number = (value) =>
             Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
         const formatDay = (value) => {
@@ -263,11 +315,11 @@
         }
         function clearCharts() {
             if (dailyChart) dailyChart.destroy();
-            if (statusChart) statusChart.destroy();
+            if (peakChart) peakChart.destroy();
             if (billingChart) billingChart.destroy();
-            dailyChart = statusChart = billingChart = null;
+            dailyChart = peakChart = billingChart = null;
             byId("dailyCanvasHolder").hidden = byId(
-                "statusCanvasHolder",
+                "peakCanvasHolder",
             ).hidden = byId("billingCanvasHolder").hidden = true;
         }
         function clearPeriod() {
@@ -292,18 +344,22 @@
             const billingLabel = byId("billingTotalLabel");
             if (billingLabel) billingLabel.textContent = "Total: R$ —";
             
-            const statusLegend = byId("statusLegend");
-            if (statusLegend) statusLegend.replaceChildren();
-            
+            if (hourlyModal.open) hourlyModal.close();
+            byId("peakSummary").hidden = true;
+            byId("peakTimeList").replaceChildren();
+            byId("peakMore").hidden = true;
+            byId("peakTableBody").replaceChildren();
+            hourlyButton.disabled = true;
+
             const dailyEmpty = byId("dailyEmpty");
-            const statusEmpty = byId("statusEmpty");
+            const peakEmpty = byId("peakEmpty");
             if (dailyEmpty) {
                 dailyEmpty.hidden = false;
                 dailyEmpty.textContent = "Carregando período…";
             }
-            if (statusEmpty) {
-                statusEmpty.hidden = false;
-                statusEmpty.textContent = "Carregando período…";
+            if (peakEmpty) {
+                peakEmpty.hidden = false;
+                peakEmpty.textContent = "Carregando período…";
             }
             
             const billingEmpty = byId("billingEmpty");
@@ -355,12 +411,15 @@
             const summary = data.resumo,
                 days = data.graficos.reservas_por_dia;
             
-            const statuses = data.graficos.situacao_reservas.filter(
-                (item) => number(item.total) > 0,
-            );
-            
+            const hourlyAvailable = Array.isArray(data.graficos.reservas_por_horario)
+                && data.graficos.reservas_por_horario.length === 24;
+            const hours = hourlyAvailable ? data.graficos.reservas_por_horario : [];
+            const peak = Math.max(0, ...hours.map(item => number(item.total)));
+            const peakHours = hours.filter(item => number(item.total) === peak && peak > 0);
+
             const range = `${formatDay(data.periodo.inicio)} a ${formatDay(data.periodo.fim)}`;
             byId("dailyChartCaption").textContent = range;
+            byId("hourlyPeriod").textContent = `${range} · São Paulo`;
             byId("dashboardUpdated").textContent =
                 `Dados consultados em ${formatTime(data.gerado_em)} · São Paulo`;
             
@@ -387,32 +446,70 @@
             byId("metricBilling").textContent = "R$ " + Number(totalBilling).toLocaleString("pt-BR", {minimumFractionDigits: 2});
             byId("billingTotalLabel").textContent = "Total: R$ " + Number(totalBilling).toLocaleString("pt-BR", {minimumFractionDigits: 2});
             
-            const list = document.createDocumentFragment();
-            statuses.forEach((item) => {
-                const row = document.createElement("li"),
-                    label = document.createElement("span"),
-                    total = document.createElement("strong");
+            clearCharts();
+            const rows = document.createDocumentFragment();
+            hours.forEach(item => {
+                const row = document.createElement("tr");
+                const label = document.createElement("th");
+                const total = document.createElement("td");
+                label.scope = "row";
                 label.textContent = item.rotulo;
+                if (peak > 0 && number(item.total) === peak) {
+                    row.className = "vd-hourly-is-peak";
+                    const badge = document.createElement("span");
+                    badge.className = "vd-hourly-peak-badge";
+                    badge.textContent = "Pico";
+                    label.append(badge);
+                }
                 total.textContent = number(item.total).toLocaleString("pt-BR");
                 row.append(label, total);
-                list.append(row);
+                rows.append(row);
             });
-            byId("statusLegend").replaceChildren(list);
-            
-            clearCharts();
-            
+            byId("peakTableBody").replaceChildren(rows);
+            hourlyButton.disabled = !hourlyAvailable;
+            const peakRows = document.createDocumentFragment();
+            peakHours.slice(0, 3).forEach(item => {
+                const row = document.createElement("li");
+                const time = document.createElement("span");
+                time.className = "vd-peak-slot";
+                time.textContent = item.rotulo;
+                const quantity = document.createElement("span");
+                quantity.className = "vd-peak-quantity";
+                const value = document.createElement("strong");
+                value.textContent = number(item.total).toLocaleString("pt-BR");
+                const unit = document.createElement("span");
+                unit.textContent = number(item.total) === 1 ? "reserva" : "reservas";
+                quantity.append(value, unit);
+                row.append(time, quantity);
+                peakRows.append(row);
+            });
+            byId("peakTimeList").replaceChildren(peakRows);
+            byId("peakSummary").hidden = peak === 0;
+            const remaining = peakHours.length - 3;
+            byId("peakMore").hidden = remaining <= 0;
+            byId("peakMore").textContent = remaining > 0
+                ? `Mais ${remaining} ${remaining === 1 ? "faixa com o mesmo volume" : "faixas com o mesmo volume"}. Veja todos os horários.` : "";
+            const peakDescription = peak > 0
+                ? `${peakHours.length === 1 ? "Pico" : "Picos"}: ${peakHours.map(item => item.rotulo).join(", ")}, com ${peak.toLocaleString("pt-BR")} ${peak === 1 ? "reserva" : "reservas"} por faixa.` : "";
+            byId("horariosPicoChart").setAttribute("aria-label",
+                `Reservas por faixa horária no período selecionado. ${peakDescription} Valores completos em Ver quantidades por horário.`);
+
             const empty = number(summary.total) === 0;
-            byId("dailyEmpty").hidden = byId("statusEmpty").hidden = !empty;
-            byId("dailyEmpty").textContent = byId("statusEmpty").textContent =
-                "Nenhuma reserva neste período.";
-            
+            byId("dailyEmpty").hidden = !empty;
+            byId("dailyEmpty").textContent = "Nenhuma reserva neste período.";
+            byId("peakEmpty").hidden = hourlyAvailable && peak > 0;
+            byId("peakEmpty").textContent = !hourlyAvailable
+                ? "Não foi possível consultar os horários de pico."
+                : "Nenhuma reserva com intervalo válido neste período.";
+
             const billingEmpty = diasBilling.length === 0 || Number(totalBilling) === 0;
             byId("billingEmpty").hidden = !billingEmpty;
 
             if (empty) {
                 root.dataset.state = "empty";
                 notice("");
-                return;
+                // Pode haver reservas iniciadas antes do período ainda em andamento.
+                if (peak === 0) return;
             }
             
             if (typeof Chart === "undefined") {
@@ -420,13 +517,14 @@
                 byId("dailyEmpty").hidden = false;
                 byId("dailyEmpty").textContent =
                     "Os gráficos não puderam ser carregados.";
+                byId("peakEmpty").hidden = false;
+                byId("peakEmpty").textContent = "O gráfico não pôde ser carregado. Consulte as quantidades por horário.";
                 notice("Os gráficos não carregaram.");
                 return;
             }
             
-            byId("dailyCanvasHolder").hidden = byId(
-                "statusCanvasHolder",
-            ).hidden = false;
+            byId("dailyCanvasHolder").hidden = empty;
+            byId("peakCanvasHolder").hidden = !hourlyAvailable || peak === 0;
 
             if (!billingEmpty) {
                 byId("billingCanvasHolder").hidden = false;
@@ -459,7 +557,7 @@
                 },
             };
             
-            dailyChart = new Chart(byId("reservasPorDiaChart"), {
+            if (!empty) dailyChart = new Chart(byId("reservasPorDiaChart"), {
                 type: "bar",
                 data: {
                     labels: days.map((item) =>
@@ -478,40 +576,33 @@
                 options,
             });
             
-            statusChart = new Chart(byId("statusReservasChart"), {
+            if (hourlyAvailable && peak > 0) peakChart = new Chart(byId("horariosPicoChart"), {
                 type: "bar",
                 data: {
-                    labels: statuses.map(
-                        (item) => shortLabels[item.status] || item.rotulo,
-                    ),
-                    datasets: [
-                        {
-                            label: "Reservas",
-                            data: statuses.map((item) => number(item.total)),
-                            backgroundColor: statuses.map(
-                                (item) => colors[item.status] || colors.outros,
-                            ),
-                            borderRadius: 4,
-                            maxBarThickness: 28,
-                        },
-                    ],
+                    labels: hours.map(item => `${String(item.hora).padStart(2, "0")}h`),
+                    datasets: [{
+                        label: "Reservas",
+                        data: hours.map(item => number(item.total)),
+                        backgroundColor: hours.map(item => number(item.total) === peak ? "#3B5042" : "#637365"),
+                        borderRadius: 3,
+                        maxBarThickness: 22,
+                    }],
                 },
                 options: {
                     ...options,
-                    indexAxis: "y",
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { precision: 0, color: "#637365" },
-                            grid: { color: "#E8ECE6" },
-                        },
-                        y: {
-                            grid: { display: false },
-                            ticks: {
-                                font: { size: 11, family: "Poppins" },
-                                color: "#637365",
+                    plugins: {
+                        ...options.plugins,
+                        tooltip: {
+                            displayColors: false,
+                            callbacks: {
+                                title: items => hours[items[0].dataIndex].rotulo,
+                                label: context => `${context.parsed.y.toLocaleString("pt-BR")} ${context.parsed.y === 1 ? "reserva" : "reservas"}`,
                             },
                         },
+                    },
+                    scales: {
+                        ...options.scales,
+                        x: { ...options.scales.x, ticks: { ...options.scales.x.ticks, maxTicksLimit: 6 } },
                     },
                 },
             });
@@ -581,7 +672,7 @@
             ) {
                 results.setAttribute("aria-busy", "false");
                 byId("dailyEmpty").textContent = byId(
-                    "statusEmpty",
+                    "peakEmpty",
                 ).textContent = "Selecione um mês válido.";
                 root.dataset.state = "invalid";
                 notice("Selecione o mês e o ano para consultar.");
@@ -633,7 +724,7 @@
                 if (version !== requestVersion) return;
                 clearPeriod();
                 byId("dailyEmpty").textContent = byId(
-                    "statusEmpty",
+                    "peakEmpty",
                 ).textContent = "Dados indisponíveis.";
                 root.dataset.state = "error";
                 notice(

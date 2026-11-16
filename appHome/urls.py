@@ -24,4 +24,5 @@ urlpatterns = [
     path('notificacoes/resumo/', NotificacoesResumoView.as_view(), name='notificacoes_resumo'),
     path('notificacoes/api/', NotificacoesAPIView.as_view(), name='notificacoes_api'),
     path('reservas/', views.reservas, name="reservas"),
+    path('monitoramento/', views.monitoramento, name="monitoramento"),
 ]

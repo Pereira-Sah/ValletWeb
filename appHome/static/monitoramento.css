@@ -1,0 +1,85 @@
+.monitoramento-page {
+    --monitoramento-secondary: #637365;
+    --monitoramento-border: #dce3db;
+    --monitoramento-light: #cbd9c5;
+    width: 100%;
+    max-width: 1560px;
+    margin: 0 auto;
+    color: var(--verde-escuro);
+    container-type: inline-size;
+}
+
+.monitoramento-page [hidden] { display: none !important; }
+.monitoramento-page ::selection { background: var(--monitoramento-light); color: var(--verde-escuro); }
+.monitoramento-page button { font: inherit; cursor: pointer; }
+.monitoramento-page button:focus-visible { outline: 2px solid var(--verde-escuro); outline-offset: 3px; }
+.monitoramento-page .monitoramento-header { margin-bottom: 28px; }
+.monitoramento-page h1 { margin: 0; font-size: clamp(26px, 2.5vw, 34px); font-weight: 700; line-height: 1.2; }
+.monitoramento-page .monitoramento-subtitle { margin: 10px 0 0; color: var(--monitoramento-secondary); font-size: .9rem; line-height: 1.6; }
+.monitoramento-page .monitoramento-demo { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 0; color: var(--monitoramento-secondary); font-size: .78rem; line-height: 1.6; }
+.monitoramento-page .monitoramento-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.monitoramento-page .monitoramento-filters { display: inline-flex; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--monitoramento-border); border-radius: 10px; }
+.monitoramento-page .monitoramento-filters button { min-height: 44px; padding: 8px 18px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--verde-escuro); font-size: .85rem; font-weight: 500; }
+.monitoramento-page .monitoramento-filters button:hover { background: #edf2eb; }
+.monitoramento-page .monitoramento-filters button[aria-pressed="true"] { color: #fff; background: var(--verde-escuro); }
+.monitoramento-page .monitoramento-count { margin: 0; color: var(--monitoramento-secondary); font-size: .8rem; }
+.monitoramento-page .monitoramento-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.monitoramento-page .monitoramento-card { min-width: 0; overflow: hidden; background: #fff; border: 1px solid var(--monitoramento-border); border-radius: 12px; }
+.monitoramento-page .monitoramento-media { aspect-ratio: 16 / 9; background: #e8ede9; overflow: hidden; }
+.monitoramento-page .monitoramento-media > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.monitoramento-page .monitoramento-live-view { position: relative; width: 100%; height: 100%; aspect-ratio: 16 / 9; background: #e8ede9; }
+.monitoramento-page .monitoramento-live-view > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.monitoramento-page .monitoramento-live-view > .monitoramento-unavailable { position: absolute; inset: 0; }
+.monitoramento-page .monitoramento-unavailable { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 100%; padding: 16px; color: var(--verde-escuro); text-align: center; }
+.monitoramento-page .monitoramento-unavailable i { font-size: 2rem; line-height: 1; }
+.monitoramento-page .monitoramento-unavailable p { margin: 0; font-size: .9rem; }
+.monitoramento-page .monitoramento-details { padding: 18px 20px 16px; }
+.monitoramento-page .monitoramento-card-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.monitoramento-page .monitoramento-card h2 { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5; }
+.monitoramento-page .monitoramento-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 6px; font-size: .73rem; font-weight: 600; line-height: 1.5; }
+.monitoramento-page .monitoramento-status > span:first-child { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.monitoramento-page .monitoramento-status[data-state="online"] { background: #edf7f1; color: #046c4e; }
+.monitoramento-page .monitoramento-status[data-state="offline"] { background: #fff0ee; color: #9b3535; }
+.monitoramento-page .monitoramento-status[data-state="connecting"] { background: #fff8e7; color: #80601c; }
+.monitoramento-page .monitoramento-area { margin: 6px 0 14px; color: var(--monitoramento-secondary); font-size: .82rem; line-height: 1.6; }
+.monitoramento-page .monitoramento-card-action { display: flex; align-items: center; justify-content: flex-end; min-height: 44px; }
+.monitoramento-page .monitoramento-expand,
+.monitoramento-page .monitoramento-reconnect,
+.monitoramento-page .monitoramento-close { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 12px; background: #fff; color: var(--verde-escuro); border: 1px solid #9ba99c; border-radius: 8px; font-size: .82rem; font-weight: 500; }
+.monitoramento-page .monitoramento-expand:disabled { opacity: .5; cursor: default; }
+.monitoramento-page .monitoramento-expand:hover:not(:disabled),
+.monitoramento-page .monitoramento-reconnect:hover,
+.monitoramento-page .monitoramento-close:hover { background: #edf2eb; border-color: var(--verde-escuro); }
+.monitoramento-page .monitoramento-offline-note { color: var(--monitoramento-secondary); font-size: .78rem; }
+.monitoramento-page .monitoramento-empty { padding: 64px 20px; text-align: center; color: var(--monitoramento-secondary); border: 1px dashed var(--monitoramento-border); border-radius: 12px; }
+.monitoramento-page .monitoramento-empty i { font-size: 2rem; }
+.monitoramento-page .monitoramento-empty p { margin: 12px 0 0; }
+
+/* Mesmo elemento dialog usado pelos modais públicos; conteúdo e estilos locais. */
+.monitoramento-page .monitoramento-modal { width: min(1200px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); padding: 0; overflow: auto; color: var(--verde-escuro); background: #fff; border: 0; border-radius: 12px; }
+.monitoramento-page .monitoramento-modal::backdrop { background: rgba(18, 28, 22, .75); }
+.monitoramento-page .monitoramento-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; }
+.monitoramento-page .monitoramento-modal h2 { margin: 0; font-size: 1.1rem; line-height: 1.5; }
+.monitoramento-page .monitoramento-modal-header p { margin: 4px 0 0; color: var(--monitoramento-secondary); font-size: .82rem; }
+.monitoramento-page .monitoramento-close { flex-shrink: 0; }
+.monitoramento-page .monitoramento-modal-media { background: #e8ede9; }
+.monitoramento-page .monitoramento-modal img { display: block; width: 100%; height: auto; max-height: calc(100dvh - 190px); object-fit: contain; }
+.monitoramento-page .monitoramento-modal .monitoramento-live-view { height: auto; max-height: calc(100dvh - 190px); }
+.monitoramento-page .monitoramento-modal .monitoramento-live-view > img { height: 100%; }
+.monitoramento-page .monitoramento-modal-note { margin: 0; padding: 12px 20px; font-size: .75rem; color: var(--monitoramento-secondary); }
+body:has(.monitoramento-modal[open]),
+.main-content:has(.monitoramento-modal[open]) { overflow: hidden; }
+
+@container (max-width: 700px) {
+    .monitoramento-page .monitoramento-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}
+
+/* Segue a adaptação da navegação nas páginas Dashboard e Reservas. */
+@media (max-width: 760px) {
+    .dashboard:has(.monitoramento-page) { flex-direction: column; height: auto; min-height: 100dvh; }
+    .dashboard:has(.monitoramento-page) > .sidebar { flex-basis: auto; width: 100%; }
+    .dashboard:has(.monitoramento-page) > .main-content { width: 100%; overflow: visible; }
+    .dashboard:has(.monitoramento-page) > .main-content:has(.monitoramento-modal[open]) { overflow: hidden; }
+    .monitoramento-page .monitoramento-details { padding: 16px; }
+    .monitoramento-page .monitoramento-modal-header { flex-wrap: wrap; padding: 16px; }
+}

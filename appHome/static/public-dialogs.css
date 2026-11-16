@@ -1,0 +1,325 @@
+:root {
+ --green-main: #3B5942; --green-sec: #637365; --green-sup: #97A697; --green-light: #CBD9C5;
+ --bg-light: #F0F2EB; --white: #FFFFFF; --text-main: #263D2E; --text-sec: #566958;
+ --border-light: #C1CCC0; --font-main: 'Poppins', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-main); color: var(--text-main); background: var(--bg-light); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+h1,h2,h3,p,figure { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; }
+button,input,select,textarea { font-family: inherit; }
+button,a,input,select,textarea { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 3px solid var(--green-main); outline-offset: 4px; }
+::selection { background: var(--green-light); color: var(--text-main); }
+input,textarea { caret-color: var(--green-main); }
+body,dialog { scrollbar-color: #637365 #F0F2EB; }
+.brand { display: inline-flex; width: 112px; flex-shrink: 0; }
+.brand img { display: block; width: 100%; height: auto; aspect-ratio: 2048 / 756; }
+.button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 11px 24px; border: 1px solid transparent; border-radius: 7px; font: inherit; font-weight: 600; text-decoration: none; line-height: 1.4; }
+.button-primary { color: white; background: var(--green-main); }
+.button-primary:hover { background: #294331; }
+.button-outline { background: transparent; border-color: var(--green-main); color: var(--text-main); }
+.button-outline:hover { background: var(--green-light); }
+.button-light { background: var(--bg-light); color: var(--text-main); }
+.button-light:hover { background: var(--green-light); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip-link { position: absolute; top: 8px; left: 16px; transform: translateY(-180%); padding: 12px; background: var(--white); z-index: 10; }
+.skip-link:focus { transform: none; }
+.contato-modal .contato-description { color: var(--text-sec); }
+.contato-modal .contato-submit:disabled { opacity: .7; cursor: wait; }
+.contato-modal .contato-close { min-height: 44px; min-width: 44px; }
+.contato-modal .contato-field input::placeholder, .contato-modal .contato-field textarea::placeholder { color: var(--text-sec); opacity: 1; }
+
+.contato-modal {
+    width: min(620px, calc(100% - 32px));
+    max-height: calc(100dvh - 48px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--border-light);
+    border-radius: 18px;
+    background: var(--white);
+    color: var(--text-main);
+    font-family: var(--font-main);
+    box-shadow: 0 24px 80px rgba(23, 36, 28, 0.2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.contato-modal::backdrop {
+    background: rgba(23, 36, 28, 0.48);
+    backdrop-filter: blur(4px);
+}
+
+.contato-panel {
+    padding: 28px;
+}
+
+.contato-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.contato-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.contato-icon {
+    display: grid;
+    flex: 0 0 44px;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #edf1eb;
+    color: var(--green-main);
+    font-size: 22px;
+}
+
+.contato-eyebrow {
+    margin-bottom: 4px;
+    color: var(--text-sec);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+
+.contato-heading h2 {
+    margin: 0;
+    color: var(--green-main);
+    font-size: 23px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.contato-close {
+    display: grid;
+    flex: 0 0 36px;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.contato-close:hover {
+    background: #edf1eb;
+    color: var(--green-main);
+}
+
+.contato-description {
+    margin: 18px 0 24px;
+    color: var(--text-sec);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.contato-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.contato-field {
+    min-width: 0;
+}
+
+.contato-field-wide {
+    grid-column: 1 / -1;
+}
+
+.contato-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--green-main);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.contato-field label span {
+    color: var(--text-sec);
+    font-weight: 400;
+}
+
+.contato-field input,
+.contato-field select,
+.contato-field textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--white);
+    color: var(--text-main);
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.contato-field textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+
+.contato-field input::placeholder,
+.contato-field textarea::placeholder {
+    color: var(--text-sec);
+    opacity: 0.85;
+}
+
+.contato-field input:focus,
+.contato-field select:focus,
+.contato-field textarea:focus {
+    outline: 2px solid var(--green-main);
+    outline-offset: 1px;
+}
+
+.contato-feedback {
+    margin-top: 16px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #edf1eb;
+    color: var(--green-main);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.contato-feedback[hidden] {
+    display: none;
+}
+
+.contato-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+}
+
+.contato-footer p {
+    flex: 1 1 150px;
+    color: var(--text-sec);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.contato-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.contato-cancel,
+.contato-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--green-sup);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.contato-cancel {
+    background: transparent;
+    color: var(--green-main);
+}
+
+.contato-cancel:hover {
+    background: #edf1eb;
+}
+
+.contato-submit {
+    border-color: var(--green-main);
+    background: var(--green-main);
+    color: var(--white);
+}
+
+.contato-submit:hover {
+    border-color: var(--green-sec);
+    background: var(--green-sec);
+}
+
+@media (max-width: 600px) {
+    .contato-modal {
+        max-height: calc(100dvh - 24px);
+        border-radius: 14px;
+    }
+
+    .contato-panel {
+        padding: 20px;
+    }
+
+    .contato-heading h2 {
+        font-size: 20px;
+    }
+
+    .contato-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .contato-footer p {
+        flex-basis: 100%;
+    }
+
+    .contato-actions {
+        width: 100%;
+    }
+
+    .contato-actions button {
+        flex: 1;
+    }
+}
+
+
+/* Recuperação de senha: usa a mesma identidade visual do modal de contato. */
+.forgot-password button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.forgot-password button:hover {
+    color: var(--green-main);
+}
+
+[data-open-password]:focus-visible {
+    outline: 2px solid var(--green-main);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.recuperar-senha-modal {
+    width: min(500px, calc(100% - 32px));
+}
+
+.recuperar-footer {
+    justify-content: flex-end;
+}
+
+.contato-feedback[data-estado="ok"]   { background:#e8f5e9; color:#1b5e20; }
+.contato-feedback[data-estado="erro"] { background:#fdecea; color:#b71c1c; }
+.contato-feedback { padding:10px 12px; border-radius:8px; font-size:.9rem; }/* Keep form boundaries and placeholders readable in both public dialogs. */
+.contato-modal .contato-field :is(input,select,textarea) { border-color: #7A8D78; }
+.contato-modal .contato-field input::placeholder, .contato-modal .contato-field textarea::placeholder { opacity: 1; }

@@ -1,355 +1,47 @@
+﻿{% load static %}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    {% load static %}
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Vallet</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acesso do gestor — Vallet</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
-    <link rel="stylesheet" href="{% static 'login.css' %}?v=login-modais-2" />
-    <link rel="icon" type="image/png" href="{% static 'assets/vallet_icon.png' %}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'login.css' %}?v=parking-3">
+    <link rel="stylesheet" href="{% static 'public-dialogs.css' %}?v=parking-1">
+    <link rel="icon" href="{% static 'assets/vallet_icon.png' %}" type="image/png">
+    <script src="{% static 'public.js' %}?v=parking-1" defer></script>
+    <script src="{% static 'login.js' %}?v=parking-1" defer></script>
 </head>
-<body>
-    <!-- HEADER (Mantendo identidade visual partilhada) -->
-    <header class="header">
-        <div class="container header-container">
-            <a href="{% url 'appHome' %}" class="logo-link">
-                <img src="{% static 'assets/vallet_logo.png' %}" alt="Vallet Logo" class="logo">
-            </a>
-            <input type="checkbox" id="menu-toggle" class="menu-toggle">
-            <label for="menu-toggle" class="menu-icon"><i class="bi bi-list"></i></label>
-            <nav class="nav-links">
-                <a href="{% url 'appHome' %}">Início</a>
-                <a href="{% url 'appHome' %}#como-funciona">Como funciona</a>
-                <a href="{% url 'appHome' %}#beneficios">Benefícios</a>
-                <button type="button" class="nav-contact-button" data-open-contact aria-haspopup="dialog" aria-controls="contato-modal">Contato</button>
-            </nav>
-        </div>
-    </header>
-
-    <main class="login-wrapper">
-        <div class="container">
-            <div class="back-nav">
-                <a href="{% url 'appHome' %}" class="back-link">
-                    <i class="bi bi-arrow-left"></i> Voltar à página inicial
-                </a>
-            </div>
-
-            <div class="login-card">
-                <!-- COLUNA FORMULÁRIO -->
-                <div class="login-form-col">
-                    <h1>Login</h1>
-
-                    <form id="loginForm">
-                        <div class="input-group">
-                            <i class="bi bi-envelope"></i>
-                            <input type="email" id="email" placeholder="Email" required />
-                        </div>
-                        <div class="input-group">
-                            <i class="bi bi-lock"></i>
-                            <input type="password" id="password" placeholder="Senha" required />
-                        </div>
-
-                        <div class="forgot-password">
-                            <button type="button" data-open-password aria-haspopup="dialog" aria-controls="recuperar-senha-modal">Esqueceu sua senha?</button>
-                        </div>
-
-                        <button type="submit" class="btn-submit">Entrar</button>
-                    </form>
-
-                    <div class="login-footer">
-                        <hr class="separator">
-                        <p>Ainda não tem acesso?</p>
-                        <button type="button" class="contact-link" data-open-contact aria-haspopup="dialog" aria-controls="contato-modal">Entre em contato conosco</button>
-                    </div>
-                </div>
-
-                <!-- COLUNA IMAGEM -->
-                <div class="login-image-col">
-                    <img src="{% static 'assets/vallet_login.svg' %}" class="person-image" alt="Acesso Seguro" />
-                </div>
-            </div>
-
-            <div class="page-footer">
-                <p>© Vallet. Todos os direitos reservados.</p>
-            </div>
-        </div>
-    </main>
-<script>
-async function enviarFormulario(form) {
-  const feedback = form.querySelector('.contato-feedback');
-  const botao = form.querySelector('.contato-submit');
-  const mostrar = (texto, ok) => {
-    feedback.textContent = texto;
-    feedback.dataset.estado = ok ? 'ok' : 'erro';
-    feedback.hidden = false;
-  };
-  botao.disabled = true;
-  feedback.hidden = true;
-  try {
-    const resp = await fetch(form.dataset.url, {
-      method: 'POST',
-      body: new FormData(form),
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    });
-    const dados = await resp.json().catch(() => ({}));
-    const ok = resp.ok && dados.ok;
-    mostrar(dados.detail || (ok ? 'Enviado com sucesso.' : 'Não foi possível enviar agora.'), ok);
-    if (ok) form.reset();
-  } catch (e) {
-    mostrar('Erro de rede. Verifique sua conexão e tente novamente.', false);
-  } finally {
-    botao.disabled = false;
-  }
-}
-</script>
-    <!-- Contato: estrutura visual para integração com o backend existente. -->
-    <dialog id="contato-modal" class="contato-modal" aria-labelledby="contato-titulo" aria-describedby="contato-descricao">
-        <div class="contato-panel">
-            <header class="contato-header">
-                <div class="contato-heading">
-                    <span class="contato-icon" aria-hidden="true"><i class="bi bi-envelope"></i></span>
-                    <div>
-                        <p class="contato-eyebrow">EQUIPE VALLET</p>
-                        <h2 id="contato-titulo">Como podemos ajudar?</h2>
-                    </div>
-                </div>
-                <button type="button" class="contato-close" data-close-contact aria-label="Fechar contato">
-                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                </button>
-            </header>
-
-            <p id="contato-descricao" class="contato-description">
-                Solicite seu acesso ou fale com a nossa equipe.
-            </p>
-
-           <form id="contatoForm" class="contato-form" method="post" data-url="{% url 'contato_enviar' %}">
-                {% csrf_token %}
-                <input type="text" name="website" tabindex="-1" autocomplete="off"
-                    style="position:absolute;left:-9999px;opacity:0" aria-hidden="true">
-                <div class="contato-fields">
-                    <div class="contato-field">
-                        <label for="contato-nome">Nome</label>
-                        <input id="contato-nome" name="nome" type="text" autocomplete="name" placeholder="Seu nome" maxlength="100" required autofocus>
-                    </div>
-                    <div class="contato-field">
-                        <label for="contato-email">E-mail</label>
-                        <input id="contato-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" maxlength="254" required>
-                    </div>
-                    <div class="contato-field contato-field-wide">
-                        <label for="contato-estacionamento">Estacionamento <span>(opcional)</span></label>
-                        <input id="contato-estacionamento" name="estacionamento" type="text" autocomplete="organization" placeholder="Nome do estacionamento" maxlength="150">
-                    </div>
-                    <div class="contato-field contato-field-wide">
-                        <label for="contato-assunto">Assunto</label>
-                        <select id="contato-assunto" name="assunto" required>
-                            <option value="" selected disabled>Selecione o assunto</option>
-                            <option value="acesso">Solicitar acesso</option>
-                            <option value="suporte">Problema para entrar</option>
-                            <option value="outro">Outro assunto</option>
-                        </select>
-                    </div>
-                    <div class="contato-field contato-field-wide">
-                        <label for="contato-mensagem">Mensagem</label>
-                        <textarea id="contato-mensagem" name="mensagem" rows="4" maxlength="3000" placeholder="Conte como podemos ajudar você." required></textarea>
-                    </div>
-                </div>
-
-                <div id="contato-feedback" class="contato-feedback" role="status" aria-live="polite" hidden></div>
-
-                <footer class="contato-footer">
-                    <p>Responderemos pelo e-mail informado.</p>
-                    <div class="contato-actions">
-                        <button type="button" class="contato-cancel" data-close-contact>Cancelar</button>
-                        <button type="submit" class="contato-submit">
-                            <i class="bi bi-send" aria-hidden="true"></i>
-                            Enviar mensagem
+<body class="login-page">
+    <div class="login-layout">
+        <div class="login-side">
+            <header class="login-header"><a href="{% url 'appHome' %}#inicio" class="brand" aria-label="Vallet — página inicial"><img src="{% static 'assets/logo_versao3.png' %}" alt="Vallet" width="2048" height="756"></a></header>
+            <main class="login-content">
+                <a href="{% url 'appHome' %}#inicio" class="back-link"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 5-7 7 7 7M3 12h18"/></svg>Voltar à página inicial</a>
+                <h1>Acesso do gestor</h1>
+                <form id="loginForm" method="post" action="{% url 'firebase_login' %}">
+                    {% csrf_token %}
+                    <div class="login-field"><label for="email">E-mail</label><input type="email" id="email" name="email" autocomplete="username" required></div>
+                    <div class="login-field"><label for="password">Senha</label><div class="password-field">
+                        <input type="password" id="password" name="password" autocomplete="current-password" required>
+                        <button type="button" id="toggle-password" aria-label="Mostrar senha" aria-controls="password" aria-pressed="false">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
                         </button>
-                    </div>
-                </footer>
-            </form>
+                    </div></div>
+                    <div class="forgot-password"><button type="button" data-open-password aria-haspopup="dialog" aria-controls="recuperar-senha-modal">Esqueceu sua senha?</button></div>
+                    <p id="login-feedback" class="login-feedback" role="alert" aria-live="assertive" hidden></p>
+                    <button type="submit" class="btn-submit">Entrar</button>
+                </form>
+                <div class="login-footer"><p>Ainda não tem acesso?</p><button type="button" class="contact-link" data-open-contact aria-haspopup="dialog" aria-controls="contato-modal">Entre em contato conosco</button></div>
+            </main>
         </div>
-    </dialog>
-
-    <script>
-        (() => {
-            const modal = document.getElementById('contato-modal');
-            const form = document.getElementById('contatoForm');
-            let trigger;
-
-            document.querySelectorAll('[data-open-contact]').forEach(button => {
-                button.addEventListener('click', () => {
-                    if (modal.open) return;
-                    trigger = button;
-                    const emailContato = document.getElementById('contato-email');
-                    if (!emailContato.value) {
-                        emailContato.value = document.getElementById('email').value.trim();
-                    }
-                    modal.showModal();
-                });
-            });
-
-            document.querySelectorAll('[data-close-contact]').forEach(button => {
-                button.addEventListener('click', () => modal.close());
-            });
-
-            modal.addEventListener('click', event => {
-                if (event.target !== modal) return;
-                const bounds = modal.getBoundingClientRect();
-                if (event.clientX < bounds.left || event.clientX > bounds.right ||
-                    event.clientY < bounds.top || event.clientY > bounds.bottom) {
-                    modal.close();
-                }
-            });
-
-            modal.addEventListener('close', () => {
-                trigger?.focus({ preventScroll: true });
-            });
-
-            // Apenas visual nesta entrega: conectar aqui o backend de contato.
-            // Impede que o formulário seja enviado por engano para a rota de login.
-            form.addEventListener('submit', event => {
-                event.preventDefault();
-                enviarFormulario(form);
-            });
-        })();
-    </script>
-
-    <!-- Recuperação de senha: formulário visual para integrar ao backend. -->
-    <dialog id="recuperar-senha-modal" class="contato-modal recuperar-senha-modal" aria-labelledby="recuperar-titulo" aria-describedby="recuperar-descricao">
-        <div class="contato-panel">
-            <header class="contato-header">
-                <div class="contato-heading">
-                    <span class="contato-icon" aria-hidden="true"><i class="bi bi-key"></i></span>
-                    <div>
-                        <p class="contato-eyebrow">RECUPERAR ACESSO</p>
-                        <h2 id="recuperar-titulo">Esqueceu sua senha?</h2>
-                    </div>
-                </div>
-                <button type="button" class="contato-close" data-close-password aria-label="Fechar recuperação de senha">
-                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                </button>
-            </header>
-
-            <p id="recuperar-descricao" class="contato-description">
-                Informe o e-mail cadastrado para recuperar seu acesso.
-            </p>
-
-            <form id="recuperarSenhaForm" class="contato-form" method="post" data-url="{% url 'recuperar_senha' %}">
-                {% csrf_token %}
-                <div class="contato-field">
-                    <label for="recuperar-email">E-mail cadastrado</label>
-                    <input id="recuperar-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" maxlength="254" required autofocus>
-                </div>
-
-                <div id="recuperar-feedback" class="contato-feedback" role="status" aria-live="polite" hidden></div>
-
-                <footer class="contato-footer recuperar-footer">
-                    <div class="contato-actions">
-                        <button type="button" class="contato-cancel" data-close-password>Voltar</button>
-                        <button type="submit" class="contato-submit">
-                            <i class="bi bi-envelope" aria-hidden="true"></i>
-                            Enviar link
-                        </button>
-                    </div>
-                </footer>
-            </form>
+        <div class="login-art parking-art" aria-hidden="true">
+            <img src="{% static 'assets/parking-gate.png' %}" alt="" width="1254" height="1254" loading="lazy" decoding="async">
         </div>
-    </dialog>
-
-    <script>
-        (() => {
-            const modal = document.getElementById('recuperar-senha-modal');
-            const form = document.getElementById('recuperarSenhaForm');
-            const trigger = document.querySelector('[data-open-password]');
-
-            trigger.addEventListener('click', () => {
-                if (modal.open) return;
-                const email = document.getElementById('recuperar-email');
-                if (!email.value) {
-                    email.value = document.getElementById('email').value.trim();
-                }
-                modal.showModal();
-            });
-
-            modal.querySelectorAll('[data-close-password]').forEach(button => {
-                button.addEventListener('click', () => modal.close());
-            });
-
-            modal.addEventListener('click', event => {
-                if (event.target !== modal) return;
-                const bounds = modal.getBoundingClientRect();
-                if (event.clientX < bounds.left || event.clientX > bounds.right ||
-                    event.clientY < bounds.top || event.clientY > bounds.bottom) {
-                    modal.close();
-                }
-            });
-
-            modal.addEventListener('close', () => {
-                trigger.focus({ preventScroll: true });
-            });
-
-            // Integração: conectar este submit ao endpoint de recuperação.
-            // Nesta entrega visual, não faz POST na rota de login nem simula envio.
-            form.addEventListener('submit', event => {
-                event.preventDefault();
-                enviarFormulario(form);
-            });
-        })();
-    </script>
-
-    <!-- AUTENTICAÇÃO (Preservada integralmente) -->
-    <script>
-      const loginForm = document.getElementById("loginForm");
-      const loginBotao = loginForm.querySelector('button[type="submit"]');
-      const loginTextoOriginal = loginBotao.textContent;
-
-      loginForm.addEventListener("submit", async function (e) {
-          e.preventDefault();
-
-          const email = document.getElementById("email").value;
-          const password = document.getElementById("password").value;
-
-          loginBotao.disabled = true;
-          loginBotao.textContent = "Entrando…";
-          loginForm.setAttribute("aria-busy", "true");
-
-          try {
-            const resp = await fetch("/auth/firebase/", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: email,
-                password: password,
-              }),
-            });
-
-            const j = await resp.json();
-
-            if (resp.ok) {
-              const redirect = j.redirect;
-              if (redirect) {
-                window.location.href = redirect;
-              } else {
-                console.error(
-                  "Redirecionamento não especificado. Usando fallback...",
-                );
-                window.location.href = "/gestor/";
-              }
-            } else {
-              alert("Erro no login: " + (j.error || "Erro desconhecido"));
-            }
-          } catch (err) {
-            alert("Erro de rede: " + err);
-          } finally {
-            loginBotao.disabled = false;
-            loginBotao.textContent = loginTextoOriginal;
-            loginForm.removeAttribute("aria-busy");
-          }
-        });
-    </script>
+    </div>
+    {% include 'partials/_public_dialogs.html' with with_password=True %}
 </body>
 </html>
