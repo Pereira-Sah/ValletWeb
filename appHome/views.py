@@ -75,7 +75,7 @@ def api_request(
             headers=headers,
             timeout=API_TIMEOUT if timeout is None else timeout,
         )
-        if response.status_code == 401:
+        if response.status_code == 401 and not endpoint.strip("/").startswith("auth/login"):
             request_obj.session.flush()
             raise PermissionDenied("Sessão expirada. Faça login novamente.")
         return response
