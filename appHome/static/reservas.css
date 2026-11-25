@@ -1,15 +1,16 @@
 /* Container */
 .reservas-container {
-    --reserva-principal: #3B5042;
+    --reserva-principal: #3B5942;
     --reserva-secundaria: #637365;
     --reserva-apoio: #97A697;
     --reserva-claro: #CBD9C5;
     --reserva-borda: #DCE3DB;
+    --reserva-text: #263D2E;
 
     padding: 0;
     min-height: 100%;
     font-family: "Poppins", sans-serif;
-    color: var(--reserva-principal);
+    color: var(--reserva-text);
 }
 
 .reservas-container :is(a, button, input, select):focus-visible {
@@ -21,14 +22,12 @@
     margin-bottom: 22px;
 }
 
-.reservas-container .page-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.main-content .reservas-container .page-header h1.page-title {
     margin: 0;
-    font-size: 1.6rem;
+    font-size: clamp(1.8rem, 3vw, 2.35rem);
     font-weight: 700;
-    color: var(--reserva-principal);
+    color: var(--reserva-text);
+    letter-spacing: -.03em;
 }
 
 /* Filtros */
@@ -99,6 +98,7 @@
     min-height: 44px;
     padding: 8px 12px;
     border-radius: 8px;
+    border: 1px solid var(--reserva-principal);
     font: inherit;
     font-size: 0.9rem;
     font-weight: 500;
